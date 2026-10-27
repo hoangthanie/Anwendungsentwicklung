@@ -20,7 +20,14 @@ Der Pi zeigt nur an. Erzeugen (Eingabeformular, Pipeline, Ollama/Qwen3) passiert
 - **Daten als Volume, nicht im Image:** Upload-Anhaengen schreibt in `daten.db`; das muss einen Neustart ueberleben und darf keine Firmendaten ins Image bringen.
 - **Nur LAN, spaeter Tailscale:** Port 8501 ist im Heimnetz erreichbar. Mit Tailscale kann man den Port spaeter an das Tailscale-Interface binden (`100.x.y.z:8501:8501`), dann ist nichts im Internet offen. Streamlit hat keine eigene Anmeldung; Tailscale uebernimmt die Zugriffskontrolle.
 
-## Einrichtung auf dem Pi (Kurzfassung)
+## Automatische Einrichtung (empfohlen)
+1. Mit dem **Raspberry Pi Imager** "Raspberry Pi OS Lite (64-bit)" auf die SD-Karte schreiben. Im Imager unter *Einstellungen bearbeiten*: Hostname (z. B. `dashboard-pi`), Benutzer und Passwort, WLAN, **SSH aktivieren**, Zeitzone. Das ist die offizielle Stelle fuer die Grundeinstellungen.
+2. Pi starten, per SSH anmelden und **einen** Befehl ausfuehren (`deploy/setup-pi.sh`, Aufruf steht im Skriptkopf). Es installiert Docker, holt den Code nach `/opt/dashboard-framework`, legt `/srv/dashboards/aktuell` an (beim ersten Mal mit dem synthetischen Sales-Beispiel) und startet den Runner. Danach laeuft er nach jedem Neustart von selbst.
+3. Ein zweiter Lauf desselben Befehls aktualisiert den Code und startet neu; Daten bleiben erhalten.
+
+Warum nicht komplett ohne SSH? Der Imager kann Hostname, WLAN und SSH vorbelegen, aber keine eigenen Skripte ausfuehren. Ein Skript beim ersten Start waere ueber `cloud-init` oder eine `firstrun`-Datei auf der Boot-Partition moeglich, das haengt von der Pi-OS-Version ab und ist fragil. Ein SSH-Befehl ist robuster. Voraussetzung: Das Repository ist fuer den Pi lesbar (oeffentlich oder per Zugangstoken in `REPO_URL`).
+
+## Einrichtung von Hand (Kurzfassung)
 1. Raspberry Pi OS Lite 64-bit, SSH an, `curl -fsSL https://get.docker.com | sh`, Nutzer in Gruppe `docker`.
 2. Repo klonen (`frontend/`), Ausgabeordner nach `/srv/dashboards/aktuell` kopieren (z. B. `scp -r ausgabe/<name>/* pi@<ip>:/srv/dashboards/aktuell/`). Ordner dem Nutzer mit UID 1000 geben: `sudo chown -R 1000 /srv/dashboards`.
 3. `docker compose -f deploy/docker-compose.yml up -d --build` (erster Build auf dem Pi dauert einige Minuten).
