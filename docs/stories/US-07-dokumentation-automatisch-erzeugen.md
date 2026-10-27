@@ -1,64 +1,37 @@
-# Qualitäts-Gate für jeden Push und Pull Request – PSP AP 4.3 (Stephanie Jayhooni)
-# Abnahmekriterium AP 4.3: „Pipeline läuft bei jedem PR grün/rot“.
-# Läuft auf GitHub-Servern, ohne Sprachmodell, nur mit synthetischen Testdaten.
-# Weitere Teile (backend/, docs/) werden ergänzt, sobald die Ordner existieren.
-name: ci
+# US-07 Dokumentation automatisch erzeugen
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-  workflow_dispatch:
+| Epic | PSP | Verantwortlich | Priorität (Entwurf AP 3.1) |
+|---|---|---|---|
+| E2 Agenten-Pipeline | 5.6 | MP | Should |
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+> **Als** Zielgruppe und Prüfer **möchte ich** nachlesen können, wie jede KPI berechnet wird und für wen das Dashboard gedacht ist, **damit** das Ergebnis nachvollziehbar ist (Modulvorgabe Dokumentation).
 
-permissions:
-  contents: read
+## Akzeptanzkriterien
 
-jobs:
-  frontend-tests:
-    name: Frontend – Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: frontend/requirements.txt
-      - name: Abhängigkeiten installieren
-        run: pip install -r requirements.txt
-      - name: Tests ausführen (pytest)
-        run: pytest -q
+Status je Kriterium: siehe Backlog-Excel (Blatt „Akzeptanzkriterien“) bzw. Ergebnis der CI.
 
-  frontend-lint:
-    name: Frontend – Code-Stil (Hinweis)
-    runs-on: ubuntu-latest
-    continue-on-error: true   # zunächst nur Hinweis, blockiert nichts
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install ruff
-      - name: ruff
-        run: ruff check src tests --output-format=github
+### US-07.1 Jede KPI mit SQL
 
-  secrets-scan:
-    name: Sicherheit – keine Zugangsdaten im Repo
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+- **Gegeben** eine Pipeline mit vier KPIs
+- **Wenn** die Doku erzeugt wird
+- **Dann** enthält sie jede KPI mit ihrem SQL-Statement
+- **Test:** `test_us06_07_dashboard_doku.py::test_doku_enthaelt_jede_kpi_mit_sql`
+
+### US-07.2 Zweck und Zielgruppe
+
+- **Gegeben** ein Artefakt mit Ziel und Publikum
+- **Wenn** die Doku erzeugt wird
+- **Dann** werden beide genannt
+- **Test:** `test_us06_07_dashboard_doku.py::test_doku_nennt_zweck_und_zielgruppe`
+
+## Schnittstelle (Vorschlag aus dem Testkonzept)
+
+Modul: `frontend/src/ bzw. backend/src/ – dashboard_framework/harness/docs.py`
+
+```python
+erzeuge_doku(artefakt, sql_je_kpi: dict[str, str], llm) -> str   # Markdown
+```
+
+## Hinweise
+
+Fakten (SQL, Spalten) kommen aus der Jinja-Vorlage, nur Erklärtexte vom LLM – so kann die Doku nichts Falsches über die Berechnung behaupten.
