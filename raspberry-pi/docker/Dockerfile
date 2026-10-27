@@ -1,4 +1,5 @@
-# Runner-Image fuer den Raspberry Pi (arm64). Nur der Runner, kein Eingabeformular, kein LLM.
+# Frontend-Image fuer den Raspberry Pi (arm64): enthaelt Runner UND Eingabeformular, kein LLM.
+# Standard-Start ist der Runner; das Eingabeformular startet docker-compose.yml mit eigenem Befehl.
 # Bauen im Repo-Wurzelordner:  docker build -f raspberry-pi/docker/Dockerfile -t dashboard-runner .
 FROM python:3.12-slim
 

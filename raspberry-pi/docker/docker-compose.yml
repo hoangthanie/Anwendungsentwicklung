@@ -1,18 +1,42 @@
 # Start auf dem Pi, im Repo-Wurzelordner:  docker compose -f raspberry-pi/docker/docker-compose.yml up -d --build
+# Beide Oberflaechen laufen auf dem Pi und sind aus dem Netz erreichbar:
+#   Dashboard (Runner)   http://<pi>:8501
+#   Eingabeformular      http://<pi>:8502
+# Ein Image, zwei Container: so wird nur einmal gebaut und die Programmdateien sind identisch.
+x-gemeinsam: &gemeinsam
+  build:
+    context: ../..          # Repo-Wurzel (frontend/ und raspberry-pi/ liegen nebeneinander)
+    dockerfile: raspberry-pi/docker/Dockerfile
+  image: dashboard-frontend
+  restart: unless-stopped
+  read_only: true           # Container-Dateisystem schreibgeschuetzt ...
+  tmpfs:
+    - /tmp                  # ... nur /tmp (Streamlit) und die eingehaengten Datenordner sind beschreibbar
+  security_opt:
+    - no-new-privileges:true
+
 services:
   runner:
-    build:
-      context: ../..          # Repo-Wurzel (frontend/ und raspberry-pi/ liegen nebeneinander)
-      dockerfile: raspberry-pi/docker/Dockerfile
-    image: dashboard-runner
-    restart: unless-stopped
+    <<: *gemeinsam
     ports:
       - "8501:8501"          # spaeter mit Tailscale: nur an das Tailscale-Interface binden
     volumes:
-      - /srv/dashboards/aktuell:/daten   # enthaelt dashboard.json, daten.db, logo.png (Upload schreibt hier)
-    mem_limit: 700m          # Pi 4 mit 2 GB: Runner darf das System nicht aushungern
-    read_only: true          # Container-Dateisystem schreibgeschuetzt ...
-    tmpfs:
-      - /tmp                 # ... nur /tmp (Streamlit) und das Volume sind beschreibbar
-    security_opt:
-      - no-new-privileges:true
+      - /srv/dashboards/aktuell:/daten   # dashboard.json, daten.db, logo.png (Upload schreibt hier)
+    mem_limit: 450m          # Pi 4 mit 2 GB: zwei Streamlit-Prozesse plus System muessen passen
+
+  eingabe:
+    <<: *gemeinsam
+    command: ["streamlit", "run", "src/dashboard_framework/eingabe/app.py",
+              "--server.address=0.0.0.0", "--server.port=8502", "--server.headless=true"]
+    ports:
+      - "8502:8502"
+    environment:
+      ARTEFAKT_ORDNER: /artefakte
+    volumes:
+      - /srv/dashboards/artefakte:/artefakte   # hier legt das Formular artefakte/<name>/artefakt.yaml + Logo ab
+    mem_limit: 450m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8502/_stcore/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
