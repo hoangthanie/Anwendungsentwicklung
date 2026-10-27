@@ -1,64 +1,14 @@
-# Qualitäts-Gate für jeden Push und Pull Request – PSP AP 4.3 (Stephanie Jayhooni)
-# Abnahmekriterium AP 4.3: „Pipeline läuft bei jedem PR grün/rot“.
-# Läuft auf GitHub-Servern, ohne Sprachmodell, nur mit synthetischen Testdaten.
-# Weitere Teile (backend/, docs/) werden ergänzt, sobald die Ordner existieren.
-name: ci
+# Architecture Decision Records (ADR)
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-  workflow_dispatch:
+Jede wichtige Entscheidung bekommt eine kurze Datei – das ist der Nachweis für die im Modul geforderte
+**Begründung der getroffenen Entscheidungen** im Begleitdokument.
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+Neue Entscheidung: `0000-vorlage.md` kopieren, nächste Nummer vergeben, als PR einreichen, im Jour fixe beschließen.
 
-permissions:
-  contents: read
-
-jobs:
-  frontend-tests:
-    name: Frontend – Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: frontend/requirements.txt
-      - name: Abhängigkeiten installieren
-        run: pip install -r requirements.txt
-      - name: Tests ausführen (pytest)
-        run: pytest -q
-
-  frontend-lint:
-    name: Frontend – Code-Stil (Hinweis)
-    runs-on: ubuntu-latest
-    continue-on-error: true   # zunächst nur Hinweis, blockiert nichts
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install ruff
-      - name: ruff
-        run: ruff check src tests --output-format=github
-
-  secrets-scan:
-    name: Sicherheit – keine Zugangsdaten im Repo
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+| Nr. | Entscheidung | Status |
+|---|---|---|
+| [0001](0001-lokales-llm.md) | Lokales LLM (Qwen3 über Ollama) statt Cloud-API | angenommen |
+| [0002](0002-build-time-runtime-split.md) | Build-Time auf Entwicklungsrechner, Runtime auf Raspberry Pi | angenommen |
+| [0003](0003-ein-generisches-image.md) | Ein generisches Runner-Image + Konfiguration statt generiertem Code | angenommen |
+| [0004](0004-harness.md) | Agent-Harness: OpenCode vs. Mini-Harness | **offen** – Spike AP 5.1 bis 30.10. |
+| [0005](0005-github-actions.md) | GitHub + GitHub Actions für Repo und CI/CD | angenommen |
