@@ -57,6 +57,8 @@ class Artefakt(BaseModel):
     @classmethod
     def _name_pruefen(cls, wert: str) -> str:
         # 'name' wird später Ordner- und Dateiname (artefakte/<name>/): deshalb nur harmlose Zeichen.
+        if not wert:
+            raise ValueError("Pflichtfeld ist leer: name")  # gleiche Meldung wie bei den anderen Pflichtfeldern
         if not _NAME.match(wert):
             raise ValueError(
                 "name: erlaubt sind Kleinbuchstaben, Ziffern und _ (muss mit einem Buchstaben beginnen, höchstens 40 Zeichen)"
@@ -67,6 +69,8 @@ class Artefakt(BaseModel):
     @classmethod
     def _tabelle_pruefen(cls, wert: str) -> str:
         # 'tabelle' wird in SQL eingesetzt: nur ein einfacher Bezeichner.
+        if not wert:
+            raise ValueError("Pflichtfeld ist leer: tabelle")
         if not ist_bezeichner(wert):
             raise ValueError(
                 "tabelle: erlaubt sind Buchstaben, Ziffern und _ (keine Leerzeichen, nicht mit einer Ziffer beginnen)"

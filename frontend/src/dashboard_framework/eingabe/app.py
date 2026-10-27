@@ -17,6 +17,7 @@ import streamlit as st
 from dashboard_framework.eingabe.branding_form import baue_branding
 from dashboard_framework.eingabe.formular import (
     artefakt_aus_formular,
+    meldungen_zu_feld,
     speichere_artefakt_ordner,
     spalten_vorschlag,
     vorhandene_artefakte,
@@ -85,7 +86,11 @@ def main() -> None:
     st.set_page_config(page_title="Dashboard-Eingabe", layout="wide")
     _starte()
     st.title("Dashboard-Eingabe")
-    st.caption("Beschreiben Sie Ihr Dashboard. Fehler werden sofort angezeigt, bevor etwas erzeugt wird.")
+    st.caption(
+        "Beschreiben Sie Ihr Dashboard. Fehler werden angezeigt, bevor etwas erzeugt wird. "
+        "Hinweis: Ein Textfeld übernimmt Ihre Eingabe erst mit Enter oder wenn Sie das Feld verlassen."
+    )
+    status = st.container()  # wird am Ende gefüllt; steht oben, damit der Stand immer sichtbar ist
 
     vorhanden = vorhandene_artefakte(ARTEFAKT_ORDNER)
     if vorhanden:
@@ -99,12 +104,18 @@ def main() -> None:
 
     st.header("1. Grunddaten")
     links, rechts = st.columns(2)
+    feld_platz = {}  # je Feld ein Platz direkt darunter für dessen Fehlermeldungen (gefüllt, sobald die Prüfung gelaufen ist)
     links.text_input("Name (Ordner- und Dateiname)", key="f_name", placeholder="mein_dashboard",
                      help="Kleinbuchstaben, Ziffern und _; muss mit einem Buchstaben beginnen.")
+    feld_platz["name"] = links.container()
     rechts.text_input("Titel des Dashboards", key="f_titel", placeholder="Mein Dashboard")
+    feld_platz["titel"] = rechts.container()
     links.text_area("Ziel: Wozu dient das Dashboard?", key="f_ziel", height=100)
+    feld_platz["ziel"] = links.container()
     rechts.text_area("Publikum: Wer nutzt es?", key="f_publikum", height=100, placeholder="z. B. Geschäftsleitung")
+    feld_platz["publikum"] = rechts.container()
     links.text_input("Tabellenname in der Datenbank", key="f_tabelle", placeholder="meine_tabelle")
+    feld_platz["tabelle"] = links.container()
 
     st.header("2. Daten und Spalten")
     csv = st.file_uploader("Beispieldatei (CSV) hochladen: Spalten und Typen werden vorgeschlagen", type=["csv"])
@@ -164,7 +175,9 @@ def main() -> None:
     felder = {f.removeprefix("f_"): st.session_state[f].strip() for f in TEXTFELDER}
     nichts_eingegeben = not any(felder.values()) and not spalten and not kpis
     if nichts_eingegeben:
-        st.info("Füllen Sie die Felder oben aus. Die Prüfung läuft dabei laufend mit.")
+        with status:
+            st.info("Füllen Sie die Felder aus. Die Prüfung läuft dabei laufend mit.")
+        st.info("Das Ergebnis erscheint hier, sobald alle Angaben gültig sind.")
         return
 
     meldungen: list[str] = []
@@ -182,9 +195,18 @@ def main() -> None:
         meldungen.extend(fehler.meldungen)
 
     if meldungen or artefakt is None:
-        _zeige_meldungen(f"{len(meldungen)} Punkt(e) müssen noch korrigiert werden:", meldungen)
+        with status:
+            _zeige_meldungen(f"{len(meldungen)} Punkt(e) müssen noch korrigiert werden:", meldungen)
+        for feld, platz in feld_platz.items():  # dieselben Meldungen zusätzlich direkt unter dem betroffenen Feld
+            with platz:
+                for text in meldungen_zu_feld(meldungen, feld):
+                    if not text.startswith("Pflichtfeld"):  # "noch leer" nicht rot unter jedes unberührte Feld; steht in der Status-Box oben
+                        st.error(text)
+        st.warning("Solange Punkte offen sind, wird kein Ergebnis angezeigt. Die Meldungen stehen oben und unter den Feldern.")
         return
 
+    with status:
+        st.success("Das Artefakt ist gültig. Das Ergebnis steht unten unter 5.")
     st.success("Das Artefakt ist gültig.")
     if branding.farben:
         st.markdown(_farbfelder(branding.farben), unsafe_allow_html=True)

@@ -35,6 +35,14 @@ def zeilen_aus_tabelle(df: pd.DataFrame, felder: list[str]) -> list[dict]:
     return zeilen
 
 
+def meldungen_zu_feld(meldungen: list[str], feld: str) -> list[str]:
+    """Wählt aus den Prüfmeldungen die aus, die ein bestimmtes Formularfeld betreffen (z. B. 'tabelle'), damit sie direkt unter dem Feld stehen können.
+
+    Meldungen nennen das Feld entweder vorn ('tabelle: erlaubt sind ...') oder hinten ('Pflichtfeld ist leer: ziel').
+    """
+    return [m for m in meldungen if m.startswith(f"{feld}:") or m.endswith(f": {feld}")]
+
+
 def vorhandene_artefakte(basis: str | Path) -> list[str]:
     """Namen der Unterordner von 'basis', die eine artefakt.yaml enthalten."""
     ordner = Path(basis)

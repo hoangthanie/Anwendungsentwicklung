@@ -59,3 +59,18 @@ def test_eingabe_app_meldet_fehler_sofort():
     assert not app.exception
     texte = " ".join(m.value for m in app.markdown)
     assert "name:" in texte and "Pflichtfeld" in texte
+
+
+def test_meldungen_zu_feld_ordnet_meldungen_dem_feld_zu():
+    from dashboard_framework.eingabe.formular import meldungen_zu_feld
+
+    meldungen = [
+        "tabelle: erlaubt sind Buchstaben, Ziffern und _",
+        "Pflichtfeld ist leer: ziel",
+        "KPI 'A': unbekannte Spalte: x",
+        "name: erlaubt sind Kleinbuchstaben",
+    ]
+    assert meldungen_zu_feld(meldungen, "tabelle") == [meldungen[0]]
+    assert meldungen_zu_feld(meldungen, "ziel") == [meldungen[1]]
+    assert meldungen_zu_feld(meldungen, "name") == [meldungen[3]]
+    assert meldungen_zu_feld(meldungen, "titel") == []

@@ -161,3 +161,8 @@ def test_zu_grosse_yaml_wird_abgelehnt(tmp_path):
     gross.write_text("a: " + "x" * (1024 * 1024 + 1), encoding="utf-8")
     with pytest.raises(ArtefaktFehler, match="größer als 1 MB"):
         Artefakt.aus_yaml(gross)
+
+
+@pytest.mark.parametrize("feld", ["name", "tabelle"])
+def test_leeres_name_oder_tabellenfeld_wird_wie_ein_leeres_pflichtfeld_gemeldet(feld):
+    assert f"Pflichtfeld ist leer: {feld}" in meldungen(mit(**{feld: ""}))
