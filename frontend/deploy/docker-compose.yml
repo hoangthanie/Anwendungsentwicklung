@@ -1,0 +1,18 @@
+# Start auf dem Pi, im Ordner frontend:  docker compose -f deploy/docker-compose.yml up -d --build
+services:
+  runner:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: dashboard-runner
+    restart: unless-stopped
+    ports:
+      - "8501:8501"          # spaeter mit Tailscale: nur an das Tailscale-Interface binden
+    volumes:
+      - /srv/dashboards/aktuell:/daten   # enthaelt dashboard.json, daten.db, logo.png (Upload schreibt hier)
+    mem_limit: 700m          # Pi 4 mit 2 GB: Runner darf das System nicht aushungern
+    read_only: true          # Container-Dateisystem schreibgeschuetzt ...
+    tmpfs:
+      - /tmp                 # ... nur /tmp (Streamlit) und das Volume sind beschreibbar
+    security_opt:
+      - no-new-privileges:true
