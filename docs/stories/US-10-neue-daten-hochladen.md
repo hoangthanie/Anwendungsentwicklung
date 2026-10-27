@@ -1,64 +1,44 @@
-# Qualitäts-Gate für jeden Push und Pull Request – PSP AP 4.3 (Stephanie Jayhooni)
-# Abnahmekriterium AP 4.3: „Pipeline läuft bei jedem PR grün/rot“.
-# Läuft auf GitHub-Servern, ohne Sprachmodell, nur mit synthetischen Testdaten.
-# Weitere Teile (backend/, docs/) werden ergänzt, sobald die Ordner existieren.
-name: ci
+# US-10 Neue Daten hochladen
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-  workflow_dispatch:
+| Epic | PSP | Verantwortlich | Priorität (Entwurf AP 3.1) |
+|---|---|---|---|
+| E3 Dashboard zur Laufzeit | 6.3 | DB | Should |
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+> **Als** Fachanwender:in **möchte ich** neue Monatsdaten per Upload ergänzen, **damit** das Dashboard aktuell bleibt, ohne dass die Pipeline neu läuft.
 
-permissions:
-  contents: read
+## Akzeptanzkriterien
 
-jobs:
-  frontend-tests:
-    name: Frontend – Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: frontend/requirements.txt
-      - name: Abhängigkeiten installieren
-        run: pip install -r requirements.txt
-      - name: Tests ausführen (pytest)
-        run: pytest -q
+Status je Kriterium: siehe Backlog-Excel (Blatt „Akzeptanzkriterien“) bzw. Ergebnis der CI.
 
-  frontend-lint:
-    name: Frontend – Code-Stil (Hinweis)
-    runs-on: ubuntu-latest
-    continue-on-error: true   # zunächst nur Hinweis, blockiert nichts
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install ruff
-      - name: ruff
-        run: ruff check src tests --output-format=github
+### US-10.1 Gültige Daten werden angehängt
 
-  secrets-scan:
-    name: Sicherheit – keine Zugangsdaten im Repo
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+- **Gegeben** eine CSV mit passendem Schema
+- **Wenn** ich „Übernehmen“ klicke
+- **Dann** werden die Zeilen an die Tabelle angehängt
+- **Test:** `test_us09_10_runner.py::test_upload_wird_angehaengt`
+
+### US-10.2 Falsches Schema wird vor dem Schreiben abgelehnt
+
+- **Gegeben** eine CSV mit fehlender Spalte oder falschem Typ
+- **Wenn** sie hochgeladen wird
+- **Dann** erscheint eine Meldung mit Spaltenname, es wird nichts geschrieben
+- **Test:** `test_framework_lib.py::test_gueltiger_upload, ::test_fehlende_spalte, ::test_falscher_typ`
+
+### US-10.3 Dashboard zeigt neue Daten sofort [manuell]
+
+- **Gegeben** Daten wurden übernommen
+- **Wenn** die Seite neu lädt
+- **Dann** sind die neuen Werte sichtbar (Cache geleert)
+- **Test:** manuell – Testprotokoll AP 8.4
+
+## Schnittstelle (Vorschlag aus dem Testkonzept)
+
+Modul: `frontend/src/ bzw. backend/src/ – dashboard_framework/runner/daten.py`
+
+```python
+uebernehmen(df, db_pfad, tabelle) -> int
+```
+
+## Hinweise
+
+Offene Designfrage (Spez. 4.7): nur anhängen oder auch überschreiben? Vor der Umsetzung im Team klären.
