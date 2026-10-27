@@ -1,0 +1,40 @@
+{
+  "name": "sales",
+  "titel": "Vertriebs-Dashboard",
+  "tabelle": "absatz",
+  "db_pfad": "daten.db",
+  "branding": {
+    "firmenname": "Muster GmbH",
+    "farben": ["#1F3864", "#ED7D31", "#70AD47"],
+    "logo": null
+  },
+  "doku": "**Zweck:** Transparenz über Umsatz nach Region, Zeitverlauf und Produktkategorie.\n\n**Zielgruppe:** Vertriebsleitung eines mittelständischen Herstellers.\n\n**Daten:** synthetische Absatzdaten (Beispiel).",
+  "charts": [
+    {
+      "titel": "Umsatz nach Region",
+      "typ": "balken",
+      "sql": "SELECT region, SUM(umsatz) AS umsatz FROM absatz GROUP BY region",
+      "sortierung": "absteigend",
+      "breite": "halb"
+    },
+    {
+      "titel": "Umsatzverlauf",
+      "typ": "linie",
+      "sql": "SELECT strftime('%Y-%m', datum) AS monat, SUM(umsatz) AS umsatz FROM absatz GROUP BY monat ORDER BY monat",
+      "farbe": "#ED7D31",
+      "breite": "halb"
+    },
+    {
+      "titel": "Top-Produkte",
+      "typ": "tabelle",
+      "sql": "SELECT produktkategorie, SUM(menge) AS menge FROM absatz GROUP BY produktkategorie ORDER BY menge DESC LIMIT 5",
+      "breite": "halb"
+    },
+    {
+      "titel": "Zielerreichung ggü. Vorperiode (%)",
+      "typ": "kennzahl",
+      "sql": "WITH m AS (SELECT strftime('%Y-%m', datum) AS monat, SUM(umsatz) AS u FROM absatz GROUP BY monat ORDER BY monat DESC LIMIT 2) SELECT ROUND(100.0 * (SELECT u FROM m ORDER BY monat DESC LIMIT 1) / (SELECT u FROM m ORDER BY monat ASC LIMIT 1), 1) AS zielerreichung",
+      "breite": "halb"
+    }
+  ]
+}
