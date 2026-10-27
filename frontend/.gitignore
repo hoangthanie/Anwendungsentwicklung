@@ -18,3 +18,7 @@ __pycache__/
 
 # Lokale Pipeline-Ausgabe (Daten und evtl. Firmenlogos): nicht einchecken
 ausgabe/
+# Eigene lokale Artefakte, Firmenlogos und Dashboards: nicht einchecken (Firmendaten, Firmenlogos)
+artefakte/tickets_am/
+artefakte/*/logo.png
+examples/sales/kundenlogo.png
