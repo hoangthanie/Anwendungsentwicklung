@@ -105,9 +105,10 @@ h1,h2,h3,h4{font-family:'Barlow Condensed',Barlow,sans-serif;font-weight:600;let
 .sf-zelle:last-child{border-right:0}
 .sf-label{display:block;font:600 12px/1 'Barlow Condensed',sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--tinte-2);margin-bottom:7px}
 .sf-wert{display:block;font:600 18px/1.25 Barlow,sans-serif;color:var(--tinte);overflow-wrap:anywhere}
-.sf-titel{display:flex;align-items:center;gap:14px}
-.sf-titel .sf-wert{font:600 26px/1.15 'Barlow Condensed',sans-serif;letter-spacing:.01em}
-.sf-logo{width:46px;height:46px;object-fit:contain;flex:none}
+.sf-titel{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px}
+.sf-titel .sf-wert{font:600 26px/1.15 'Barlow Condensed',sans-serif;letter-spacing:.01em;flex:1 1 12ch;min-width:0;overflow-wrap:break-word}  /* nur an Wortgrenzen umbrechen; reicht der Platz nicht, rutscht der Titel unter das Logo */
+/* Logo: gleiche Höhe, Breite folgt dem Bild (breite Wortmarken bleiben lesbar), nie mehr als 40 % der Titelzelle, damit der Titel Platz behält */
+.sf-logo{height:46px;width:auto;max-width:min(160px,40%);min-width:0;flex:0 1 auto;object-fit:contain}
 @media (max-width:900px){.sf{grid-template-columns:1fr 1fr!important}.sf-titel{grid-column:1/-1;border-right:0;border-bottom:1px solid var(--linie)}.sf-zelle{border-bottom:1px solid var(--haar)}}
 
 /* Zustandsmarke: Form UND Text, nie nur Farbe */

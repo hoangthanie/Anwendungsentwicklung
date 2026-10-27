@@ -36,9 +36,9 @@ PLOTLY_CONFIG = {"displayModeBar": False}  # Zoom- und Export-Leiste würde nur 
 
 
 @st.cache_data(show_spinner=False)
-def _lade(config_pfad: str, db_stand: float):
-    """Konfiguration, Diagrammdaten und Kopfdaten laden. db_stand (Änderungszeit der DB) ist Teil des Cache-Schlüssels:
-    ändert sich die Datenbank, wird automatisch neu geladen."""
+def _lade(config_pfad: str, db_stand: float, config_stand: float):
+    """Konfiguration, Diagrammdaten und Kopfdaten laden. db_stand und config_stand (Änderungszeiten von Datenbank und dashboard.json)
+    sind Teil des Cache-Schlüssels: ändert sich eine der beiden Dateien, wird automatisch neu geladen."""
     config = DashboardConfig.laden(config_pfad)
     db_pfad = Path(config_pfad).parent / config.db_pfad
     return config, lade_chart_daten(config, db_pfad), lade_kopfdaten(config, db_pfad)
@@ -158,7 +158,7 @@ def main() -> None:
     try:
         config_roh = DashboardConfig.laden(config_pfad)
         db_datei = config_pfad.parent / config_roh.db_pfad
-        config, daten, kopf = _lade(str(config_pfad), db_datei.stat().st_mtime)
+        config, daten, kopf = _lade(str(config_pfad), db_datei.stat().st_mtime, config_pfad.stat().st_mtime)
     except FileNotFoundError as fehler:
         wende_an()
         st.error(f"Datei nicht gefunden: {fehler.filename}")
