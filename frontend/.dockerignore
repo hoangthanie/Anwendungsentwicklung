@@ -1,9 +1,0 @@
-.venv
-ausgabe
-artefakte
-examples
-tests
-docs
-.impeccable
-*.db
-.env

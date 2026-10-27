@@ -1,17 +1,17 @@
 # Runner-Image fuer den Raspberry Pi (arm64). Nur der Runner, kein Eingabeformular, kein LLM.
-# Bauen im Ordner frontend:  docker build -f deploy/Dockerfile -t dashboard-runner .
+# Bauen im Repo-Wurzelordner:  docker build -f raspberry-pi/docker/Dockerfile -t dashboard-runner .
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 # Abhaengigkeiten zuerst: bleibt beim Code-Aenderungen im Docker-Cache
-COPY deploy/requirements-runner.txt .
+COPY raspberry-pi/docker/requirements-runner.txt .
 RUN pip install -r requirements-runner.txt
 
-COPY pyproject.toml ./
-COPY src ./src
-COPY .streamlit ./.streamlit
+COPY frontend/pyproject.toml ./
+COPY frontend/src ./src
+COPY frontend/.streamlit ./.streamlit
 RUN pip install --no-deps .
 
 # Kein Root: der Prozess bekommt nur Schreibrechte auf den Datenordner

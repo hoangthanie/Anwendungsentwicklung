@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Richtet einen frischen Raspberry Pi (Raspberry Pi OS Lite, 64-bit) komplett fuer den Dashboard-Runner ein.
 # Aufruf auf dem Pi (einmal):
-#   curl -fsSL https://raw.githubusercontent.com/hoangthanie/Anwendungsentwicklung/main/frontend/deploy/setup-pi.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/hoangthanie/Anwendungsentwicklung/main/raspberry-pi/setup-pi.sh | sudo bash
 # Das Skript ist wiederholbar: ein zweiter Lauf aktualisiert den Code und startet neu, loescht aber keine Daten.
 set -euo pipefail
 
@@ -40,7 +40,7 @@ fi
 chown -R 1000:1000 /srv/dashboards   # UID des Container-Nutzers "runner"
 
 echo "==> 5/5 Runner starten (Neustart nach Reboot automatisch)"
-docker compose -f "${APP_DIR}/frontend/deploy/docker-compose.yml" up -d --build
+docker compose -f "${APP_DIR}/raspberry-pi/docker/docker-compose.yml" up -d --build
 
 IP="$(hostname -I | awk '{print $1}')"
 echo "Fertig. Im Browser: http://${IP}:8501"

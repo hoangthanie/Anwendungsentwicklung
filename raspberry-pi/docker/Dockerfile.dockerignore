@@ -1,0 +1,7 @@
+# Kontext ist die Repo-Wurzel: alles ausschliessen, nur den Runner-Code zulassen (keine Daten, Artefakte, Firmenlogos)
+*
+!frontend/pyproject.toml
+!frontend/src
+!frontend/.streamlit
+!raspberry-pi/docker/requirements-runner.txt
+**/__pycache__

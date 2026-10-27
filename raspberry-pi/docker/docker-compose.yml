@@ -1,9 +1,9 @@
-# Start auf dem Pi, im Ordner frontend:  docker compose -f deploy/docker-compose.yml up -d --build
+# Start auf dem Pi, im Repo-Wurzelordner:  docker compose -f raspberry-pi/docker/docker-compose.yml up -d --build
 services:
   runner:
     build:
-      context: ..
-      dockerfile: deploy/Dockerfile
+      context: ../..          # Repo-Wurzel (frontend/ und raspberry-pi/ liegen nebeneinander)
+      dockerfile: raspberry-pi/docker/Dockerfile
     image: dashboard-runner
     restart: unless-stopped
     ports:
