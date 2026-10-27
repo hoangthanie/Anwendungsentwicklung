@@ -44,6 +44,28 @@ def fuege_spalte_ein(text: str, spalte: str) -> str:
     return (basis + " " if basis else "") + f'"{spalte}" '
 
 
+def finde_geaenderte_kpi(ids: list[int], texte: dict[int, str], vorher: dict[int, str]) -> int | None:
+    """Die KPI, deren Text sich seit dem letzten Lauf geändert hat (bei mehreren die letzte), sonst None.
+
+    Streamlit meldet dem Server nicht, in welchem Feld der Cursor steht. Aber ein Textfeld übernimmt seinen Inhalt, sobald man es verlässt
+    (also auch, wenn man danach eine Spalte anklickt): Das zuletzt geänderte Feld ist deshalb die KPI, an der der Anwender gerade arbeitet.
+    """
+    geaendert = [kid for kid in ids if kid in vorher and texte.get(kid, "") != vorher[kid]]
+    return geaendert[-1] if geaendert else None
+
+
+def waehle_ziel_kpi(ids: list[int], texte: dict[int, str], vorher: dict[int, str], zuletzt: int | None) -> int:
+    """In welche KPI soll eine angeklickte Spalte eingefügt werden? Reihenfolge: zuletzt geänderte KPI, sonst die zuletzt benutzte,
+    sonst die erste leere, sonst die letzte."""
+    geaendert = finde_geaenderte_kpi(ids, texte, vorher)
+    if geaendert is not None:
+        return geaendert
+    if zuletzt in ids:
+        return zuletzt
+    leere = [kid for kid in ids if not texte.get(kid, "").strip()]
+    return leere[0] if leere else ids[-1]
+
+
 def meldungen_zu_feld(meldungen: list[str], feld: str) -> list[str]:
     """Wählt aus den Prüfmeldungen die aus, die ein bestimmtes Formularfeld betreffen (z. B. 'tabelle'), damit sie direkt unter dem Feld stehen können.
 

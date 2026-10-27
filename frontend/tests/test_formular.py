@@ -112,3 +112,32 @@ def test_eingabe_app_gueltiges_artefakt_mit_leeren_beschreibungen_zeigt_hinweis_
     assert not app.exception
     texte = " ".join(m.value for m in app.markdown)
     assert "marke-gueltig" in texte and "Ohne Beschreibung: a" in texte and "raten" in texte
+
+
+def test_ziel_kpi_ist_die_zuletzt_geaenderte():
+    from dashboard_framework.eingabe.formular import finde_geaenderte_kpi, waehle_ziel_kpi
+
+    ids = [0, 1, 2]
+    vorher = {0: "Anzahl", 1: "Summe", 2: ""}
+    jetzt = {0: "Anzahl", 1: "Summe je", 2: ""}  # in KPI 1 wurde getippt
+    assert finde_geaenderte_kpi(ids, jetzt, vorher) == 1
+    assert waehle_ziel_kpi(ids, jetzt, vorher, zuletzt=0) == 1  # Änderung schlägt "zuletzt benutzt"
+    assert finde_geaenderte_kpi(ids, vorher, vorher) is None
+
+
+def test_ziel_kpi_ohne_aenderung_zuletzt_benutzte_sonst_erste_leere_sonst_letzte():
+    from dashboard_framework.eingabe.formular import waehle_ziel_kpi
+
+    ids = [3, 4, 5]
+    gleich = {3: "a", 4: "b", 5: "c"}
+    assert waehle_ziel_kpi(ids, gleich, gleich, zuletzt=4) == 4
+    assert waehle_ziel_kpi(ids, gleich, gleich, zuletzt=99) == 5  # unbekannt, keine leere -> letzte
+    mit_leerer = {3: "a", 4: "", 5: "c"}
+    assert waehle_ziel_kpi(ids, mit_leerer, mit_leerer, zuletzt=None) == 4  # erste leere Zeile
+    assert waehle_ziel_kpi(ids, gleich, {}, zuletzt=3) == 3  # kein Vergleichsstand (z. B. nach dem Laden): kein falscher Treffer
+
+
+def test_neue_kpi_zeile_wird_nicht_als_aenderung_gewertet_solange_sie_nicht_im_vergleichsstand_ist():
+    from dashboard_framework.eingabe.formular import finde_geaenderte_kpi
+
+    assert finde_geaenderte_kpi([0, 1], {0: "x", 1: "y"}, {0: "x"}) is None

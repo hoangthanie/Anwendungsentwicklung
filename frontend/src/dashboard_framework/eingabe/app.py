@@ -21,6 +21,7 @@ from dashboard_framework.eingabe.formular import (
     artefakt_aus_formular,
     fuege_spalte_ein,
     meldungen_zu_feld,
+    waehle_ziel_kpi,
     speichere_artefakt_ordner,
     spalten_vorschlag,
     vorhandene_artefakte,
@@ -74,6 +75,7 @@ def _lade_vorhandenes(name: str) -> None:
         st.session_state[f"kpi_name_{kid}"] = kpi.name
         st.session_state[f"kpi_text_{kid}"] = backticks_zu_anfuehrungszeichen(kpi.beschreibung)  # im Formular Anführungszeichen
     st.session_state["kpi_ids"], st.session_state["kpi_naechste_id"] = ids, start + len(ids)
+    st.session_state["kpi_snapshot"], st.session_state["kpi_ziel"] = {}, (ids[0] if ids else None)
     st.session_state.pop("lade_fehler", None)
 
 
@@ -81,6 +83,7 @@ def _neue_kpi() -> None:
     kid = st.session_state["kpi_naechste_id"]
     st.session_state["kpi_naechste_id"] = kid + 1
     st.session_state["kpi_ids"] = [*st.session_state["kpi_ids"], kid]
+    st.session_state["kpi_ziel"] = kid  # an der neuen Zeile arbeitet man als Nächstes
 
 
 def _entferne_kpi(kid: int) -> None:
@@ -91,13 +94,17 @@ def _entferne_kpi(kid: int) -> None:
     st.session_state["kpi_ids"] = rest
 
 
-def _fuege_spalte_ein(kid: int) -> None:
-    """Callback der Spalten-Knöpfe: hängt den gewählten Spaltennamen an den Text dieser KPI an und setzt die Auswahl zurück."""
-    wahl = st.session_state.get(f"kpi_pill_{kid}")
+def _fuege_spalte_ein() -> None:
+    """Callback der einen Spaltenleiste: hängt den gewählten Spaltennamen an den Text der KPI an, an der gerade gearbeitet wird
+    (zuletzt geänderte KPI, siehe waehle_ziel_kpi), und setzt die Auswahl zurück."""
+    wahl = st.session_state.get("kpi_pill")
     if wahl:
-        schluessel = f"kpi_text_{kid}"
-        st.session_state[schluessel] = fuege_spalte_ein(st.session_state.get(schluessel, ""), wahl)
-    st.session_state[f"kpi_pill_{kid}"] = None
+        ids = st.session_state["kpi_ids"]
+        texte = {kid: st.session_state.get(f"kpi_text_{kid}", "") for kid in ids}
+        kid = waehle_ziel_kpi(ids, texte, st.session_state.get("kpi_snapshot", {}), st.session_state.get("kpi_ziel"))
+        st.session_state[f"kpi_text_{kid}"] = fuege_spalte_ein(texte[kid], wahl)
+        st.session_state["kpi_ziel"] = kid
+    st.session_state["kpi_pill"] = None
 
 
 def _farbfelder(farben: list[str]) -> str:
@@ -208,10 +215,16 @@ def main() -> None:
             spalte_n.text_input("Name der KPI", key=f"kpi_name_{kid}", placeholder="z. B. Tickets je Standort")
             spalte_t.text_input("Berechnung", key=f"kpi_text_{kid}", placeholder='z. B. Anzahl der Tickets je "Spalte"')
             spalte_x.button("Entfernen", key=f"kpi_weg_{kid}", on_click=_entferne_kpi, args=(kid,))
-            if namen:
-                st.pills("Spalte einfügen", namen, selection_mode="single", key=f"kpi_pill_{kid}",
-                         on_change=_fuege_spalte_ein, args=(kid,))
         st.button("KPI hinzufügen", key="kpi_neu", on_click=_neue_kpi)
+        ids = st.session_state["kpi_ids"]
+        texte = {kid: st.session_state.get(f"kpi_text_{kid}", "") for kid in ids}
+        ziel = waehle_ziel_kpi(ids, texte, st.session_state.get("kpi_snapshot", {}), st.session_state.get("kpi_ziel"))
+        st.session_state["kpi_ziel"], st.session_state["kpi_snapshot"] = ziel, texte  # Vergleichsstand für den nächsten Lauf
+        if namen:  # eine einzige Leiste für alle KPIs
+            ziel_name = st.session_state.get(f"kpi_name_{ziel}", "").strip() or f"KPI {ids.index(ziel) + 1}"
+            st.markdown(f"**Spalte einfügen in:** {esc(ziel_name)} (die KPI, in die Sie zuletzt getippt haben)")
+            st.pills("Spalte einfügen", namen, selection_mode="single", key="kpi_pill", label_visibility="collapsed",
+                     on_change=_fuege_spalte_ein)
         kpis = [
             {"name": st.session_state.get(f"kpi_name_{kid}", "").strip(), "beschreibung": st.session_state.get(f"kpi_text_{kid}", "").strip()}
             for kid in st.session_state["kpi_ids"]
