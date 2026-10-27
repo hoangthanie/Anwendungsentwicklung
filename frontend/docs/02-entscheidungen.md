@@ -55,5 +55,14 @@ Format: Kontext – Alternativen – Entscheidung – Konsequenz. Neueste Eintr�
 ## E-12 – YAML mit `safe_load` und Größenlimit (2026-10-27)
 - **Warum:** `yaml.load` kann Code ausführen; `safe_load` nicht. Teil des Sicherheitskonzepts (AP 4.6).
 
+## E-13 – Schritt 3: Modell wählt nur Darstellung, nie SQL (2026-10-27)
+- **Alternativen:** (A) Modell erzeugt die komplette `dashboard.json` (Backlog-Hinweis: `DashboardConfig.json_schema()`), (B) Modell wählt nur Typ/Farbe/Sortierung/Breite, der Code setzt alles Übrige.
+- **Entscheidung:** B, mit schmalem Schema (`wahl_schema`) und Endprüfung durch `DashboardConfig`.
+- **Warum:** Das geprüfte SQL aus Schritt 2 kann nicht verändert werden; weniger Ausgabe = weniger Fehler und Tokens; Name/Tabelle/Farben kommen laut US-06.2 aus dem Artefakt. Mit David abstimmen. Details: docs/07-dashboard-schritt.md.
+
+## E-14 – Abbruch statt stiller Ersatzkonfiguration (2026-10-27)
+- **Entscheidung:** Nach `max_versuche` ungültiger Antworten gibt es einen `DashboardFehler`, keine Standard-Konfiguration.
+- **Warum:** Fail-Fast: Ein Ersatz würde ein untaugliches Modell/Prompt verstecken. Ein expliziter Ersatzmodus wäre später möglich.
+
 ## E-05 – Reihenfolge: Runner zuerst (2026-10-27)
 - **Warum:** Der Runner braucht kein LLM, nur eine Beispiel-`dashboard.json` und eine Test-DB. Er ist früh sichtbar (Demo-fähig) und prägt das Format, das die Pipeline erzeugen muss. Danach Upload, Formular, Branding.

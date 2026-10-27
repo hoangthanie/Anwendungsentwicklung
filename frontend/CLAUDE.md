@@ -17,7 +17,7 @@ Leitbild: "Die Fabrik, nicht das Produkt" – Erfolgsmaßstab ist Generizität (
 | 6.2 | Upload & Branding (Logo-Prüfung mit Pillow, Farbcodes `#RRGGBB`) | US-03 | fertig (83 Tests grün, im Browser geprüft); Einbindung ins Gesamtformular mit 6.1 |
 | 6.3 | Dashboard-Runner (liest `dashboard.json`, rendert Charts/Theme/Logo, Daten-Upload) | US-09, US-10 | US-09 fertig, US-10 Upload "nur anhängen" fertig (61 Tests grün, im Browser geprüft); Team muss anhängen/überschreiben klären |
 | 6.4 | UI-Feinschliff & Usability-Check mit Testperson | – | offen |
-| 5.5 | Pipeline-Schritt 3: Dashboard-Konfiguration (JSON-Schema-erzwungen) | US-06 | Phase 2 |
+| 5.5 | Pipeline-Schritt 3: Dashboard-Konfiguration (JSON-Schema-erzwungen) | US-06 | Logik fertig, mit FakeLLM getestet (146 Tests); echtes Modell ungetestet (Spike David) |
 | 5.8 | Prompt-Vorlagen & Token-Optimierung | – | Phase 2 |
 | 3.3 | Input-Artefakte definieren (Pydantic + `artefakt.yaml`), gemeinsam mit DZ | US-02 | Platzhalter-Modell fertig (`models/artefakt.py`), Abstimmung mit DZ offen |
 
@@ -57,7 +57,8 @@ Reihenfolge (Entscheidung): **Runner zuerst** (6.3) – ohne LLM testbar, liefer
 ## Offene Punkte
 - US-10 Upload: umgesetzt ist "nur anhängen". Soll es zusätzlich Überschreiben/"Monat ersetzen" geben (braucht Schlüsselspalte im Schema)? Team muss klären (Spez. 4.7).
 - `Artefakt`-Modell (Platzhalter) mit David abstimmen (PSP 3.3/3.4, R07): Feldnamen, Grenzen (12 KPIs), strenge Bezeichner (keine Leerzeichen in Spaltennamen), `Branding.logo`; `artefakte/aktivitaet/` gehört fachlich zu AP 7.4 (David).
-- Nächste Frontend-Schritte: PSP 6.4 Usability-Check mit Testperson; PSP 5.5 Pipeline-Schritt 3 (Dashboard-Konfiguration aus SQL + Artefakt) und 5.8 Prompt-Vorlagen (Phase 2).
+- Nächste Frontend-Schritte: PSP 6.4 Usability-Check mit Testperson; PSP 5.8 Prompt-Vorlagen & Token-Optimierung (braucht das echte Modell, Ollama bei David eingerichtet).
+- Schritt 3 mit David abstimmen: schmales Modell-Schema statt `DashboardConfig.json_schema()` (E-13), Schnittstelle `LLM.antworte(prompt, schritt, json_schema)`, `harness/__init__.py` (Konfliktgefahr).
 - `DashboardConfig.spalten` (neu) mit David abstimmen: Das gemeinsame Modell (PSP 3.4) muss das Schema für den Upload enthalten.
 - Gemeinsames Code-Gerüst von DZ/SJ in die Repo bringen lassen.
 - AP 7.1 (synthetische Daten) hat keine verantwortliche Person.
@@ -89,6 +90,7 @@ Python 3.12 verwendet. git user.name/user.email lokal setzen (war auf dem ersten
 - `models/artefakt.py`: `Artefakt`, `Kpi`, `ArtefaktFehler` (Fail-Fast im `model_validator`: KPI-Spalten in Backticks gegen Spalten, strenge Bezeichner, `extra=forbid`, YAML `safe_load`). Details: docs/06-eingabe.md.
 - `eingabe/formular.py`: `artefakt_aus_formular`, `spalten_vorschlag`, `zeilen_aus_tabelle`, `speichere_artefakt_ordner`, `vorhandene_artefakte`. `eingabe/branding_form.py`: `baue_branding`.
 - `eingabe/app.py`: vollständiges Formular (Grunddaten, Spalten-/KPI-Editor, Branding, laufende Prüfung, Download/Speichern nach `frontend/artefakte/<name>/`; Env `ARTEFAKT_ORDNER`). Start: `streamlit run src/dashboard_framework/eingabe/app.py`.
+- `harness/dashboard.py` (Schritt 3, PSP 5.5): `erzeuge_config(artefakt, sql_je_kpi, llm, max_versuche)`; Modell wählt nur typ/farbe/sortierung/breite (Schema `wahl_schema`), SQL/Name/Tabelle/Branding setzt der Code; Prüfung + Reparaturschleife; `LLMProtokoll` = `antworte(prompt, schritt, json_schema)` (Annahme zu Davids `harness/llm.py`). Tests mit `tests/fakes.py:FakeLLM`. Details: docs/07-dashboard-schritt.md.
 - `artefakte/sales/` (Referenzfall) und `artefakte/aktivitaet/` (Entwurf fürs 2. Dashboard, mit David abstimmen); Test `test_alle_artefakte_im_repo_sind_gueltig` prüft alle.
 - `.streamlit/config.toml`: `maxUploadSize = 5` (MB), festes helles Theme. App immer aus dem Ordner `frontend` starten, damit sie gelesen wird.
 - Nach Änderungen an Modulen (nicht nur app.py) den Streamlit-Server neu starten. Port-Freigabe notfalls per PowerShell (`Get-NetTCPConnection -LocalPort 8511`).
@@ -98,6 +100,7 @@ Python 3.12 verwendet. git user.name/user.email lokal setzen (war auf dem ersten
 - Hinweis Tooling: Die automatische Befehlsprüfung der Claude-App fiel oft aus; Schreibvorgänge einfach wiederholen.
 
 ## Arbeitslog (neueste oben)
+- 2026-10-27 – Phase 2, PSP 5.5 / US-06: Pipeline-Schritt 3 `harness/dashboard.py` (schmales Modell-Schema mit Enums, Prompt, Antwortprüfung auf Format und Inhalt, Reparaturschleife mit Fehlertext, JSON aus Codeblöcken retten, SQL-Vorprüfung, Abbruch statt Ersatz), `tests/fakes.py:FakeLLM`, 21 neue Tests (146 gesamt grün), Integration mit Runner. Entscheidungen E-13/E-14, docs/07. Tests nachgeschärft (schwache Assertion, Fixture). Mit echtem Modell NICHT getestet. Noch nicht gepusht (5 Commits + dieser).
 - 2026-10-27 – Eingabeformular (PSP 6.1/3.3, US-01/02): `Artefakt`-Modell mit Fail-Fast (KPI-Spalten in Backticks, "meinten Sie", strenge Bezeichner gegen SQL-/Pfad-Einschleusung, `extra=forbid`, `safe_load`), Formularlogik, vollständige Eingabe-App (Tabellen-Editor, CSV-Spaltenvorschlag, laufende Prüfung, Laden/Speichern/Download), Beispiel-Artefakte sales + aktivitaet (Entwurf). 125 Tests grün; Browser: Artefakt laden, CSV mit `Person` -> "meinten Sie `Person`?". Entscheidungen E-10 bis E-12, docs/06-eingabe.md. Noch nicht gepusht (4 Commits + dieser).
 - 2026-10-27 – Branding (PSP 6.2 / US-03): Logo-Prüfung (Inhalt statt Endung, nur PNG/JPEG, 1 MB, 4000 px, Neu-Kodierung zu `logo.png`), sicheres Laden (kein Pfad aus dem Ordner), Farben `#RRGGBB`, Akzentfarbe per CSS, festes helles Theme, Eingabe-Entwurfsseite. 83 Tests grün; Browser: Runner mit Logo, Eingabe mit Skript-Datei/PNG/falschen Farben. Gefunden/gefixt: CSS-Selektoren passten nicht zu Streamlit 1.66; Fehlermeldung zeigte Farben in Großbuchstaben. Entscheidungen E-08/E-09, docs/05-branding.md. Noch nicht gepusht (3 Commits + dieser).
 - 2026-10-27 – Daten-Upload (US-10) "nur anhängen": Schema-Validierung mit Typumwandlung, Fehlerliste, Vorschau, Doppel-Upload-Warnung, atomares Schreiben, 5-MB-Limit. 61 Tests grün. Im Browser geprüft (fehlerhafte und gültige CSV; DB 192 -> 194 Zeilen, Chart aktualisiert sich). Gefunden/gefixt: App startete im Browser nicht (Paket nicht installiert, nur pytest hatte den Pfad) -> `pip install -e .` in requirements.txt; leere Logo-Spalte im Kopf; englische pandas-Fehlertexte in Meldungen. Entscheidungen E-06/E-07, docs/04-upload.md. Noch nicht gepusht.
