@@ -14,7 +14,7 @@ Leitbild: "Die Fabrik, nicht das Produkt" – Erfolgsmaßstab ist Generizität (
 | PSP | Arbeitspaket | Stories | Status |
 |---|---|---|---|
 | 6.1 | Streamlit-Eingabeoberfläche (Formular -> `artefakt.yaml`, Spaltenauswahl) | US-01, US-02 | offen |
-| 6.2 | Upload & Branding (Logo-Prüfung mit Pillow, Farbcodes `#RRGGBB`) | US-03 | offen |
+| 6.2 | Upload & Branding (Logo-Prüfung mit Pillow, Farbcodes `#RRGGBB`) | US-03 | fertig (83 Tests grün, im Browser geprüft); Einbindung ins Gesamtformular mit 6.1 |
 | 6.3 | Dashboard-Runner (liest `dashboard.json`, rendert Charts/Theme/Logo, Daten-Upload) | US-09, US-10 | US-09 fertig, US-10 Upload "nur anhängen" fertig (61 Tests grün, im Browser geprüft); Team muss anhängen/überschreiben klären |
 | 6.4 | UI-Feinschliff & Usability-Check mit Testperson | – | offen |
 | 5.5 | Pipeline-Schritt 3: Dashboard-Konfiguration (JSON-Schema-erzwungen) | US-06 | Phase 2 |
@@ -83,13 +83,17 @@ Python 3.12 verwendet. git user.name/user.email lokal setzen (war auf dem ersten
 - `runner/daten.py`: `lade_chart_daten`, `sortiere`, `achsen`, `layout_zeilen`. `runner/charts.py`: Plotly-Figuren, Kennzahl. `runner/app.py`: dünne Streamlit-UI.
 - `models/spalten.py`: `SpaltenDef`, `aehnliche_spalte` ("meinten Sie ...?"). `DashboardConfig.spalten` = Schema; Upload-Tab erscheint nur, wenn es gesetzt ist.
 - `runner/framework_lib.py`: `lese_csv`, `validate_against_schema`, `zaehle_vorhandene_zeilen`, `uebernehmen` (atomar, einziger Schreibpfad), `UploadFehler`. Details: docs/04-upload.md.
-- `.streamlit/config.toml`: `maxUploadSize = 5` (MB). App immer aus dem Ordner `frontend` starten, damit sie gelesen wird.
+- `runner/branding.py`: `pruefe_logo(_bytes)`, `bereinige_logo` (neu kodiertes PNG), `speichere_logo` (fester Name `logo.png`), `lade_logo` (nur im Ordner), `normalisiere_farben`, `theme_css`, `BrandingFehler`. Details: docs/05-branding.md.
+- `eingabe/branding_form.py`: `baue_branding`; `eingabe/app.py`: Entwurfsseite (bisher nur Branding; 6.1 baut sie aus). Start: `streamlit run src/dashboard_framework/eingabe/app.py`.
+- `.streamlit/config.toml`: `maxUploadSize = 5` (MB), festes helles Theme. App immer aus dem Ordner `frontend` starten, damit sie gelesen wird.
+- Nach Änderungen an Modulen (nicht nur app.py) den Streamlit-Server neu starten. Port-Freigabe notfalls per PowerShell (`Get-NetTCPConnection -LocalPort 8511`).
 - `examples/sales/`: Beispiel-`dashboard.json` und `make_demo_db.py` (erzeugt `daten.db`, gitignored).
 - Tests: `python -m pytest` im Ordner `frontend` (venv: `.venv`). Starten der App siehe docs/03-runner.md.
 - Arbeitsweise: Streamlit-Dateien dünn, Logik in reinen Funktionen; neue Funktion = Eintrag in docs/.
 - Hinweis Tooling: Die automatische Befehlsprüfung der Claude-App fiel oft aus; Schreibvorgänge einfach wiederholen.
 
 ## Arbeitslog (neueste oben)
+- 2026-10-27 – Branding (PSP 6.2 / US-03): Logo-Prüfung (Inhalt statt Endung, nur PNG/JPEG, 1 MB, 4000 px, Neu-Kodierung zu `logo.png`), sicheres Laden (kein Pfad aus dem Ordner), Farben `#RRGGBB`, Akzentfarbe per CSS, festes helles Theme, Eingabe-Entwurfsseite. 83 Tests grün; Browser: Runner mit Logo, Eingabe mit Skript-Datei/PNG/falschen Farben. Gefunden/gefixt: CSS-Selektoren passten nicht zu Streamlit 1.66; Fehlermeldung zeigte Farben in Großbuchstaben. Entscheidungen E-08/E-09, docs/05-branding.md. Noch nicht gepusht (3 Commits + dieser).
 - 2026-10-27 – Daten-Upload (US-10) "nur anhängen": Schema-Validierung mit Typumwandlung, Fehlerliste, Vorschau, Doppel-Upload-Warnung, atomares Schreiben, 5-MB-Limit. 61 Tests grün. Im Browser geprüft (fehlerhafte und gültige CSV; DB 192 -> 194 Zeilen, Chart aktualisiert sich). Gefunden/gefixt: App startete im Browser nicht (Paket nicht installiert, nur pytest hatte den Pfad) -> `pip install -e .` in requirements.txt; leere Logo-Spalte im Kopf; englische pandas-Fehlertexte in Meldungen. Entscheidungen E-06/E-07, docs/04-upload.md. Noch nicht gepusht.
 - 2026-10-27 – Runner-Grundversion (PSP 6.3 / US-09): Config-Modell, SQL-Sicherheit, Datenladen, Charts, Streamlit-App, Beispiel + Demo-DB, 36 Tests grün (inkl. AppTest-Rauchtest), docs/03-runner.md. Visuelle Browser-Prüfung steht noch aus. Bug gefunden/gefixt: numpy.int64 in kennzahl_wert. Noch nicht gepusht (Dominik wollte erst den Runner).
 - 2026-10-27 – Projektunterlagen gelesen, Repo geklont (leer), `frontend/`-Grundstruktur, CLAUDE.md, Doku-Gerüst angelegt. Noch kein Code, noch nichts gepusht.

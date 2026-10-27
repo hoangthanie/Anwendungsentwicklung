@@ -30,6 +30,17 @@ def main() -> None:
     verbindung.commit()
     verbindung.close()
     print(f"{len(zeilen)} Zeilen -> {ZIEL}")
+    erzeuge_demo_logo()
+
+
+def erzeuge_demo_logo() -> None:
+    """Kleines Beispiel-Logo (Quadrat mit Kreis in Firmenfarben), nur zum Ausprobieren des Brandings."""
+    from PIL import Image, ImageDraw
+
+    bild = Image.new("RGB", (240, 240), "#1F3864")
+    ImageDraw.Draw(bild).ellipse((60, 60, 180, 180), fill="#ED7D31")
+    bild.save(Path(__file__).with_name("logo.png"))
+    print("Logo -> logo.png")
 
 
 if __name__ == "__main__":

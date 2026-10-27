@@ -13,7 +13,7 @@
   "branding": {
     "firmenname": "Muster GmbH",
     "farben": ["#1F3864", "#ED7D31", "#70AD47"],
-    "logo": null
+    "logo": "logo.png"
   },
   "doku": "**Zweck:** Transparenz über Umsatz nach Region, Zeitverlauf und Produktkategorie.\n\n**Zielgruppe:** Vertriebsleitung eines mittelständischen Herstellers.\n\n**Daten:** synthetische Absatzdaten (Beispiel).",
   "charts": [

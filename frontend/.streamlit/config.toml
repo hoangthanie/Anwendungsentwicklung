@@ -5,3 +5,8 @@ maxUploadSize = 5
 
 [browser]
 gatherUsageStats = false
+
+[theme]
+# Firmenfarben sind für helle Hintergründe gestaltet (z. B. dunkles Marineblau). Auf einem dunklen Theme wären sie schlecht lesbar,
+# deshalb ist das helle Theme fest eingestellt und folgt nicht der Betriebssystem-Einstellung des Betrachters.
+base = "light"

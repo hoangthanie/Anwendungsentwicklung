@@ -13,6 +13,7 @@ from pathlib import Path
 import streamlit as st
 
 from dashboard_framework.models.dashboard_config import DashboardConfig
+from dashboard_framework.runner.branding import BrandingFehler, lade_logo, theme_css
 from dashboard_framework.runner.charts import erstelle_figur, kennzahl_wert, waehle_farbe
 from dashboard_framework.runner.daten import lade_chart_daten, layout_zeilen
 from dashboard_framework.runner.framework_lib import (
@@ -106,10 +107,18 @@ def main() -> None:
         return
 
     farben = config.branding.farben
-    logo = config_pfad.parent / config.branding.logo if config.branding.logo else None
-    if logo and logo.exists():
+    css = theme_css(farben)
+    if css:
+        st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+    logo_bytes = None
+    if config.branding.logo:
+        try:
+            logo_bytes = lade_logo(config_pfad.parent, config.branding.logo)
+        except BrandingFehler as fehler:
+            st.warning(f"Das Logo wird nicht angezeigt: {fehler}")
+    if logo_bytes:
         kopf_logo, kopf_text = st.columns([1, 6])  # Logo-Spalte nur, wenn es ein Logo gibt (sonst bliebe sie leer)
-        kopf_logo.image(str(logo), width=96)
+        kopf_logo.image(logo_bytes, width=96)
     else:
         kopf_text = st.container()
     kopf_text.title(config.titel)

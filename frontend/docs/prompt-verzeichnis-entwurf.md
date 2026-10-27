@@ -6,4 +6,5 @@ Modulvorgabe: Alle mit generativer KI erzeugten Inhalte kennzeichnen. Diese List
 |---|---|---|---|---|
 | 2026-10-27 | 6.3 | Claude Code | Dashboard-Runner (Config-Modell, SQL-Sicherheit, Charts, App), Tests, docs/03 | Code gelesen, 36 Tests, im Browser geprüft |
 | 2026-10-27 | 6.3 | Claude Code | Daten-Upload (US-10): Validierung, Übernehmen, UI, Tests, docs/04 | 61 Tests, Browser-Test mit fehlerhafter und gültiger CSV |
+| 2026-10-27 | 6.2 | Claude Code | Branding: Logo-/Farbprüfung, Anzeige, Eingabe-Entwurfsseite, Tests, docs/05 | 83 Tests, Browser-Test mit Skript-Datei, PNG und falschen Farben |
 | 2026-10-27 | 6.x | Claude Code | Projektunterlagen eingelesen, frontend/-Grundstruktur, CLAUDE.md, Doku-Gerüst | Inhalte gelesen, Struktur im Team abstimmen |

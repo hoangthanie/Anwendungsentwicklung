@@ -35,5 +35,13 @@ Format: Kontext – Alternativen – Entscheidung – Konsequenz. Neueste Eintr�
 - **Entscheidung:** Das Frontend ist ein installierbares Paket (`pyproject.toml`, `-e .` in `requirements.txt`).
 - **Warum:** Ein einheitlicher, offizieller Weg für Tests, `streamlit run` und später das Docker-Image; kein `sys.path`-Hack und keine Umgebungsvariable `PYTHONPATH`.
 
+## E-08 – Logo wird neu kodiert und unter festem Namen gespeichert (2026-10-27)
+- **Alternativen:** (A) Original speichern, wenn die Prüfung besteht, (B) mit Pillow neues PNG erzeugen.
+- **Entscheidung:** B, immer als `logo.png`, höchstens 1024 px.
+- **Warum:** Eine bestandene Prüfung garantiert nicht, dass die Datei *nur* ein Bild ist (angehängte Daten, Metadaten). Nur selbst erzeugte Bytes werden gespeichert. Details: docs/05-branding.md.
+
+## E-09 – Festes helles Theme (2026-10-27)
+- **Warum:** Firmenfarben sind für helle Hintergründe gestaltet; auf dunklem Theme war Marineblau kaum lesbar. Preis: Das Theme folgt nicht der Einstellung des Betrachters.
+
 ## E-05 – Reihenfolge: Runner zuerst (2026-10-27)
 - **Warum:** Der Runner braucht kein LLM, nur eine Beispiel-`dashboard.json` und eine Test-DB. Er ist früh sichtbar (Demo-fähig) und prägt das Format, das die Pipeline erzeugen muss. Danach Upload, Formular, Branding.
