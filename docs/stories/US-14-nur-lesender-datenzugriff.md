@@ -1,64 +1,45 @@
-# Qualitäts-Gate für jeden Push und Pull Request – PSP AP 4.3 (Stephanie Jayhooni)
-# Abnahmekriterium AP 4.3: „Pipeline läuft bei jedem PR grün/rot“.
-# Läuft auf GitHub-Servern, ohne Sprachmodell, nur mit synthetischen Testdaten.
-# Weitere Teile (backend/, docs/) werden ergänzt, sobald die Ordner existieren.
-name: ci
+# US-14 Nur lesender Datenzugriff
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-  workflow_dispatch:
+| Epic | PSP | Verantwortlich | Priorität (Entwurf AP 3.1) |
+|---|---|---|---|
+| E5 Sicherheit | 4.6 | DZ | Must |
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+> **Als** Unternehmen (Datenhoheit) **möchte ich** sicher sein, dass generiertes SQL keine Daten verändert, **damit** Fehler oder Manipulationen keinen Schaden anrichten (Risiko R14).
 
-permissions:
-  contents: read
+## Akzeptanzkriterien
 
-jobs:
-  frontend-tests:
-    name: Frontend – Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: frontend/requirements.txt
-      - name: Abhängigkeiten installieren
-        run: pip install -r requirements.txt
-      - name: Tests ausführen (pytest)
-        run: pytest -q
+Status je Kriterium: siehe Backlog-Excel (Blatt „Akzeptanzkriterien“) bzw. Ergebnis der CI.
 
-  frontend-lint:
-    name: Frontend – Code-Stil (Hinweis)
-    runs-on: ubuntu-latest
-    continue-on-error: true   # zunächst nur Hinweis, blockiert nichts
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install ruff
-      - name: ruff
-        run: ruff check src tests --output-format=github
+### US-14.1 Nur SELECT erlaubt
 
-  secrets-scan:
-    name: Sicherheit – keine Zugangsdaten im Repo
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+- **Gegeben** ein SQL mit INSERT/UPDATE/DELETE/DROP …
+- **Wenn** es geprüft wird
+- **Dann** wird es abgelehnt
+- **Test:** `test_validators.py::test_erlaubte_abfragen, ::test_schreibende_oder_mehrfache_abfragen_werden_abgelehnt`
+
+### US-14.2 Genau ein Statement
+
+- **Gegeben** mehrere Statements mit Semikolon
+- **Wenn** sie geprüft werden
+- **Dann** werden sie abgelehnt
+- **Test:** `test_validators.py::test_schreibende_oder_mehrfache_abfragen_werden_abgelehnt`
+
+### US-14.3 DB technisch schreibgeschützt
+
+- **Gegeben** eine read-only geöffnete Verbindung
+- **Wenn** ein Schreibversuch erfolgt
+- **Dann** schlägt er auf Datenbankebene fehl
+- **Test:** `test_validators.py::test_db_ist_technisch_schreibgeschuetzt`
+
+## Schnittstelle (Vorschlag aus dem Testkonzept)
+
+Modul: `frontend/src/ bzw. backend/src/ – dashboard_framework/harness/validators.py`
+
+```python
+pruefe_nur_lesend(sql) -> str
+verbinde_nur_lesend(db_pfad) -> sqlite3.Connection
+```
+
+## Hinweise
+
+Bereits umgesetzt – Beispiel für den Zielzustand aller Stories.
