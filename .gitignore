@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+# Laufzeit-Artefakte
+build/
+runs/*
+!runs/.gitkeep
+*.db
+!tests/fixtures/*.db
+# Secrets
+.env
+*.pem
+id_*
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/
+~$*
