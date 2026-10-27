@@ -1,64 +1,37 @@
-# Qualitäts-Gate für jeden Push und Pull Request – PSP AP 4.3 (Stephanie Jayhooni)
-# Abnahmekriterium AP 4.3: „Pipeline läuft bei jedem PR grün/rot“.
-# Läuft auf GitHub-Servern, ohne Sprachmodell, nur mit synthetischen Testdaten.
-# Weitere Teile (backend/, docs/) werden ergänzt, sobald die Ordner existieren.
-name: ci
+# US-13 Sicheres Deployment
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-  workflow_dispatch:
+| Epic | PSP | Verantwortlich | Priorität (Entwurf AP 3.1) |
+|---|---|---|---|
+| E4 Betrieb | 7.3, 4.3 | DZ | Should |
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+> **Als** Betreiber:in **möchte ich** Updates einspielen, ohne Daten zu verlieren, **damit** per Upload ergänzte Daten erhalten bleiben (Risiko R11).
 
-permissions:
-  contents: read
+## Akzeptanzkriterien
 
-jobs:
-  frontend-tests:
-    name: Frontend – Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: frontend/requirements.txt
-      - name: Abhängigkeiten installieren
-        run: pip install -r requirements.txt
-      - name: Tests ausführen (pytest)
-        run: pytest -q
+Status je Kriterium: siehe Backlog-Excel (Blatt „Akzeptanzkriterien“) bzw. Ergebnis der CI.
 
-  frontend-lint:
-    name: Frontend – Code-Stil (Hinweis)
-    runs-on: ubuntu-latest
-    continue-on-error: true   # zunächst nur Hinweis, blockiert nichts
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install ruff
-      - name: ruff
-        run: ruff check src tests --output-format=github
+### US-13.1 Datenbank wird nie überschrieben [manuell]
 
-  secrets-scan:
-    name: Sicherheit – keine Zugangsdaten im Repo
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+- **Gegeben** ein Dashboard mit per Upload ergänzten Daten
+- **Wenn** ein neues Release deployt wird
+- **Dann** ist die Zeilenanzahl unverändert und ein Backup vorhanden
+- **Test:** manuell – Release-Checkliste
+
+### US-13.2 Rollback möglich [manuell]
+
+- **Gegeben** ein fehlerhaftes Release
+- **Wenn** der Healthcheck fehlschlägt
+- **Dann** kann das vorherige Image-Tag gestartet werden
+- **Test:** manuell – Release-Checkliste
+
+## Schnittstelle (Vorschlag aus dem Testkonzept)
+
+Modul: `deploy/`
+
+```python
+deploy / deploy.sh
+```
+
+## Hinweise
+
+Kandidat für späteren automatisierten Test in release.yml.
