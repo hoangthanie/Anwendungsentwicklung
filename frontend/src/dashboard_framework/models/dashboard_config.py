@@ -12,6 +12,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from dashboard_framework.models.spalten import SpaltenDef
+
 ChartTyp = Literal["balken", "linie", "tabelle", "kennzahl"]
 Sortierung = Literal["keine", "aufsteigend", "absteigend"]
 Breite = Literal["halb", "voll"]
@@ -63,6 +65,7 @@ class DashboardConfig(BaseModel):
     titel: str = Field(min_length=1)
     tabelle: str = Field(min_length=1)
     db_pfad: str = "data/daten.db"  # relativ zur dashboard.json
+    spalten: list[SpaltenDef] = Field(default_factory=list)  # Schema der Tabelle; Voraussetzung für den Daten-Upload
     charts: list[Chart] = Field(min_length=1)
     branding: Branding = Field(default_factory=Branding)
     doku: str | None = None  # Text für den Tab "Über dieses Dashboard"

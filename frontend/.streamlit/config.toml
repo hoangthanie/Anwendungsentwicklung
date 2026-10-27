@@ -1,0 +1,7 @@
+[server]
+# Streamlit erlaubt standardmäßig 200 MB pro Upload. Unser Limit ist 5 MB (framework_lib.MAX_UPLOAD_BYTES);
+# so lehnt schon der Server zu große Dateien ab, bevor sie in den Arbeitsspeicher gelesen werden. Wert in MB.
+maxUploadSize = 5
+
+[browser]
+gatherUsageStats = false

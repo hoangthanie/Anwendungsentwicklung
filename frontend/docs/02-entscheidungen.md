@@ -23,5 +23,17 @@ Format: Kontext – Alternativen – Entscheidung – Konsequenz. Neueste Eintr�
 ## E-04 – Dünne Streamlit-Dateien, Fachlogik in reinen Funktionen (2026-10-27)
 - **Warum:** Streamlit-Code ist schwer automatisiert zu testen. Liegt die Logik (Validierung, Datenladen, Upload-Prüfung) in normalen Funktionen, genügt `pytest` ohne Browser. Das fordert auch das Backlog (Hinweise zu US-01 und US-09).
 
+## E-06 – Upload zunächst "nur anhängen" (2026-10-27)
+- **Kontext:** Spezifikation 4.7 lässt offen, ob der Upload anhängen oder überschreiben soll.
+- **Alternativen:** (A) nur anhängen, (B) zusätzlich "Monat ersetzen" über eine Schlüsselspalte.
+- **Entscheidung:** A als Startvariante (Auftrag von Dominik), Entscheidung für B im Team offen.
+- **Warum:** Sicher (keine Beschädigung bestehender Daten), einfach, kommt ohne Schlüsselspalte im generischen Schema aus.
+- **Konsequenz:** Fehlerhafte Uploads sind aus der App nicht korrigierbar; Mitigation: Vorschau, Warnung vor Doppel-Upload, atomares Schreiben. Details: docs/04-upload.md.
+
+## E-07 – Paket per `pip install -e .` statt Pfad-Trick (2026-10-27)
+- **Kontext:** App startete im Browser nicht, obwohl pytest grün war (Importpfad nur in pytest gesetzt).
+- **Entscheidung:** Das Frontend ist ein installierbares Paket (`pyproject.toml`, `-e .` in `requirements.txt`).
+- **Warum:** Ein einheitlicher, offizieller Weg für Tests, `streamlit run` und später das Docker-Image; kein `sys.path`-Hack und keine Umgebungsvariable `PYTHONPATH`.
+
 ## E-05 – Reihenfolge: Runner zuerst (2026-10-27)
 - **Warum:** Der Runner braucht kein LLM, nur eine Beispiel-`dashboard.json` und eine Test-DB. Er ist früh sichtbar (Demo-fähig) und prägt das Format, das die Pipeline erzeugen muss. Danach Upload, Formular, Branding.

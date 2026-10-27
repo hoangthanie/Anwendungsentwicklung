@@ -26,7 +26,7 @@ def test_app_zeigt_beispiel_dashboard(demo_db, monkeypatch):
     assert not app.exception
     assert not app.error
     assert [t.value for t in app.title] == ["Vertriebs-Dashboard"]
-    assert len(app.tabs) == 2
+    assert len(app.tabs) == 3  # Dashboard, Über dieses Dashboard, Daten aktualisieren
     assert len(app.metric) == 1
 
 

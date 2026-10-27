@@ -3,6 +3,13 @@
   "titel": "Vertriebs-Dashboard",
   "tabelle": "absatz",
   "db_pfad": "daten.db",
+  "spalten": [
+    { "name": "datum", "typ": "datum", "beschreibung": "Verkaufstag" },
+    { "name": "region", "typ": "text", "beschreibung": "Vertriebsregion" },
+    { "name": "produktkategorie", "typ": "text", "beschreibung": "Produktgruppe" },
+    { "name": "menge", "typ": "ganzzahl", "beschreibung": "Verkaufte Stückzahl" },
+    { "name": "umsatz", "typ": "dezimal", "beschreibung": "Nettoumsatz in Euro" }
+  ],
   "branding": {
     "firmenname": "Muster GmbH",
     "farben": ["#1F3864", "#ED7D31", "#70AD47"],

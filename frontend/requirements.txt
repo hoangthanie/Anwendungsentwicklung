@@ -5,3 +5,4 @@ pyyaml>=6.0
 pillow>=10.4
 plotly>=5.24
 pytest>=8.0
+-e .

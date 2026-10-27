@@ -7,6 +7,7 @@ Konfiguration über Umgebungsvariablen:
 from __future__ import annotations
 
 import os
+import sqlite3
 from pathlib import Path
 
 import streamlit as st
@@ -14,6 +15,13 @@ import streamlit as st
 from dashboard_framework.models.dashboard_config import DashboardConfig
 from dashboard_framework.runner.charts import erstelle_figur, kennzahl_wert, waehle_farbe
 from dashboard_framework.runner.daten import lade_chart_daten, layout_zeilen
+from dashboard_framework.runner.framework_lib import (
+    UploadFehler,
+    lese_csv,
+    uebernehmen,
+    validate_against_schema,
+    zaehle_vorhandene_zeilen,
+)
 from dashboard_framework.runner.sicherheit import UnsicheresSql
 
 STANDARD_CONFIG = Path(__file__).resolve().parents[3] / "examples" / "sales" / "dashboard.json"
@@ -38,6 +46,48 @@ def _zeige_chart(chart, df, firmenfarben) -> None:
         st.plotly_chart(erstelle_figur(chart, df, firmenfarben), use_container_width=True)
 
 
+def _upload_bereich(config: DashboardConfig, db_datei: Path) -> None:
+    """Daten-Upload (US-10): CSV wählen -> automatisch prüfen -> Vorschau -> erst nach Klick auf 'Übernehmen' schreiben."""
+    st.markdown(
+        "Neue Datenzeilen als CSV-Datei hochladen. Sie werden an die bestehende Tabelle **angehängt**; "
+        "vorhandene Daten werden weder geändert noch überschrieben."
+    )
+    st.caption("Erwartete Spalten: " + ", ".join(f"`{s.name}` ({s.typ})" for s in config.spalten))
+    meldung = st.session_state.pop("upload_meldung", None)
+    if meldung:
+        st.success(meldung)
+    nummer = st.session_state.setdefault("upload_nr", 0)  # neuer Schlüssel = leeres Upload-Feld nach erfolgreicher Übernahme
+    datei = st.file_uploader("CSV-Datei", type=["csv"], key=f"upload_{nummer}")
+    if datei is None:
+        return
+    try:
+        geprueft = validate_against_schema(lese_csv(datei.getvalue()), config.spalten)
+    except UploadFehler as fehler:
+        st.error("Die Datei kann nicht übernommen werden:")
+        for text in fehler.meldungen:
+            st.markdown(f"- {text}")
+        return
+    st.success(f"{len(geprueft)} Zeilen sind gültig.")
+    doppelt = zaehle_vorhandene_zeilen(geprueft, db_datei, config.tabelle)
+    if doppelt:
+        st.warning(
+            f"{doppelt} dieser Zeilen gibt es bereits genau so in den Daten. "
+            "Wenn Sie die Datei schon einmal hochgeladen haben, würden die Werte doppelt gezählt."
+        )
+    st.dataframe(geprueft.head(10), hide_index=True, use_container_width=True)
+    if len(geprueft) > 10:
+        st.caption(f"Vorschau: erste 10 von {len(geprueft)} Zeilen")
+    if st.button("Übernehmen", type="primary"):
+        try:
+            anzahl = uebernehmen(geprueft, db_datei, config.tabelle)
+        except (UploadFehler, sqlite3.Error) as fehler:
+            st.error(f"Übernahme fehlgeschlagen, es wurde nichts geschrieben: {fehler}")
+            return
+        st.session_state["upload_meldung"] = f"{anzahl} Zeilen wurden übernommen."
+        st.session_state["upload_nr"] = nummer + 1
+        st.rerun()
+
+
 def main() -> None:
     config_pfad = Path(os.environ.get("DASHBOARD_CONFIG", STANDARD_CONFIG))
     st.set_page_config(page_title="Dashboard", layout="wide")
@@ -56,24 +106,29 @@ def main() -> None:
         return
 
     farben = config.branding.farben
-    kopf_logo, kopf_text = st.columns([1, 6])
-    if config.branding.logo:
-        logo = config_pfad.parent / config.branding.logo
-        if logo.exists():
-            kopf_logo.image(str(logo), width=96)
+    logo = config_pfad.parent / config.branding.logo if config.branding.logo else None
+    if logo and logo.exists():
+        kopf_logo, kopf_text = st.columns([1, 6])  # Logo-Spalte nur, wenn es ein Logo gibt (sonst bliebe sie leer)
+        kopf_logo.image(str(logo), width=96)
+    else:
+        kopf_text = st.container()
     kopf_text.title(config.titel)
     if config.branding.firmenname:
         kopf_text.caption(config.branding.firmenname)
 
-    tab_dashboard, tab_doku = st.tabs(["Dashboard", "Über dieses Dashboard"])
-    with tab_dashboard:
+    tab_namen = ["Dashboard", "Über dieses Dashboard"] + (["Daten aktualisieren"] if config.spalten else [])
+    tabs = st.tabs(tab_namen)
+    with tabs[0]:
         for zeile in layout_zeilen(config.charts):
             spalten = st.columns(len(zeile))
             for spalte, chart in zip(spalten, zeile):
                 with spalte:
                     _zeige_chart(chart, daten[chart.titel], farben)
-    with tab_doku:
+    with tabs[1]:
         st.markdown(config.doku or "Für dieses Dashboard liegt noch keine Dokumentation vor.")
+    if config.spalten:
+        with tabs[2]:
+            _upload_bereich(config, db_datei)
 
 
 if __name__ == "__main__":

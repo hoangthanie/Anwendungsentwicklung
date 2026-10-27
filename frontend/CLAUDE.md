@@ -15,7 +15,7 @@ Leitbild: "Die Fabrik, nicht das Produkt" – Erfolgsmaßstab ist Generizität (
 |---|---|---|---|
 | 6.1 | Streamlit-Eingabeoberfläche (Formular -> `artefakt.yaml`, Spaltenauswahl) | US-01, US-02 | offen |
 | 6.2 | Upload & Branding (Logo-Prüfung mit Pillow, Farbcodes `#RRGGBB`) | US-03 | offen |
-| 6.3 | Dashboard-Runner (liest `dashboard.json`, rendert Charts/Theme/Logo, Daten-Upload) | US-09, US-10 | US-09 Grundversion fertig (36 Tests grün), Upload (US-10) offen |
+| 6.3 | Dashboard-Runner (liest `dashboard.json`, rendert Charts/Theme/Logo, Daten-Upload) | US-09, US-10 | US-09 fertig, US-10 Upload "nur anhängen" fertig (61 Tests grün, im Browser geprüft); Team muss anhängen/überschreiben klären |
 | 6.4 | UI-Feinschliff & Usability-Check mit Testperson | – | offen |
 | 5.5 | Pipeline-Schritt 3: Dashboard-Konfiguration (JSON-Schema-erzwungen) | US-06 | Phase 2 |
 | 5.8 | Prompt-Vorlagen & Token-Optimierung | – | Phase 2 |
@@ -55,7 +55,8 @@ Reihenfolge (Entscheidung): **Runner zuerst** (6.3) – ohne LLM testbar, liefer
 - Doku-Sprache Deutsch; jede Entscheidung mit Begründung in `docs/`.
 
 ## Offene Punkte
-- US-10 Upload: nur anhängen (Start-Annahme) oder auch überschreiben? Team muss klären (Spez. 4.7).
+- US-10 Upload: umgesetzt ist "nur anhängen". Soll es zusätzlich Überschreiben/"Monat ersetzen" geben (braucht Schlüsselspalte im Schema)? Team muss klären (Spez. 4.7).
+- `DashboardConfig.spalten` (neu) mit David abstimmen: Das gemeinsame Modell (PSP 3.4) muss das Schema für den Upload enthalten.
 - Gemeinsames Code-Gerüst von DZ/SJ in die Repo bringen lassen.
 - AP 7.1 (synthetische Daten) hat keine verantwortliche Person.
 - ADR 0004 OpenCode vs. Mini-Harness (Spike DZ, bis 30.10.) – beeinflusst Frontend kaum.
@@ -80,11 +81,15 @@ Python 3.12 verwendet. git user.name/user.email lokal setzen (war auf dem ersten
 - `models/dashboard_config.py`: Platzhalter-Modell `DashboardConfig`/`Chart`/`Branding` (Chart-Typen, Farbformat, eindeutige Titel).
 - `runner/sicherheit.py`: `pruefe_nur_lesend`, `verbinde_nur_lesend` (2 Schichten, siehe docs/03-runner.md).
 - `runner/daten.py`: `lade_chart_daten`, `sortiere`, `achsen`, `layout_zeilen`. `runner/charts.py`: Plotly-Figuren, Kennzahl. `runner/app.py`: dünne Streamlit-UI.
+- `models/spalten.py`: `SpaltenDef`, `aehnliche_spalte` ("meinten Sie ...?"). `DashboardConfig.spalten` = Schema; Upload-Tab erscheint nur, wenn es gesetzt ist.
+- `runner/framework_lib.py`: `lese_csv`, `validate_against_schema`, `zaehle_vorhandene_zeilen`, `uebernehmen` (atomar, einziger Schreibpfad), `UploadFehler`. Details: docs/04-upload.md.
+- `.streamlit/config.toml`: `maxUploadSize = 5` (MB). App immer aus dem Ordner `frontend` starten, damit sie gelesen wird.
 - `examples/sales/`: Beispiel-`dashboard.json` und `make_demo_db.py` (erzeugt `daten.db`, gitignored).
 - Tests: `python -m pytest` im Ordner `frontend` (venv: `.venv`). Starten der App siehe docs/03-runner.md.
 - Arbeitsweise: Streamlit-Dateien dünn, Logik in reinen Funktionen; neue Funktion = Eintrag in docs/.
 - Hinweis Tooling: Die automatische Befehlsprüfung der Claude-App fiel oft aus; Schreibvorgänge einfach wiederholen.
 
 ## Arbeitslog (neueste oben)
+- 2026-10-27 – Daten-Upload (US-10) "nur anhängen": Schema-Validierung mit Typumwandlung, Fehlerliste, Vorschau, Doppel-Upload-Warnung, atomares Schreiben, 5-MB-Limit. 61 Tests grün. Im Browser geprüft (fehlerhafte und gültige CSV; DB 192 -> 194 Zeilen, Chart aktualisiert sich). Gefunden/gefixt: App startete im Browser nicht (Paket nicht installiert, nur pytest hatte den Pfad) -> `pip install -e .` in requirements.txt; leere Logo-Spalte im Kopf; englische pandas-Fehlertexte in Meldungen. Entscheidungen E-06/E-07, docs/04-upload.md. Noch nicht gepusht.
 - 2026-10-27 – Runner-Grundversion (PSP 6.3 / US-09): Config-Modell, SQL-Sicherheit, Datenladen, Charts, Streamlit-App, Beispiel + Demo-DB, 36 Tests grün (inkl. AppTest-Rauchtest), docs/03-runner.md. Visuelle Browser-Prüfung steht noch aus. Bug gefunden/gefixt: numpy.int64 in kennzahl_wert. Noch nicht gepusht (Dominik wollte erst den Runner).
 - 2026-10-27 – Projektunterlagen gelesen, Repo geklont (leer), `frontend/`-Grundstruktur, CLAUDE.md, Doku-Gerüst angelegt. Noch kein Code, noch nichts gepusht.

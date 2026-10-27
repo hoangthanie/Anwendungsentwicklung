@@ -7,6 +7,7 @@ import pytest
 from dashboard_framework.models.dashboard_config import Chart, DashboardConfig
 from dashboard_framework.runner.charts import erstelle_figur, kennzahl_wert, waehle_farbe
 from dashboard_framework.runner.daten import achsen, lade_chart_daten, layout_zeilen
+from dashboard_framework.runner.framework_lib import UploadFehler, uebernehmen, validate_against_schema
 from dashboard_framework.runner.sicherheit import UnsicheresSql
 
 
@@ -27,6 +28,32 @@ def test_runner_fuehrt_kein_schreibendes_sql_aus(test_db):  # TF-032 / US-09.2
     )
     with pytest.raises(UnsicheresSql):
         lade_chart_daten(boese, test_db)
+    verbindung = sqlite3.connect(test_db)
+    assert verbindung.execute("SELECT COUNT(*) FROM absatz").fetchone()[0] == 4
+    verbindung.close()
+
+
+def test_upload_wird_angehaengt(test_db):  # TF-034 / US-10.1
+    schema = [
+        {"name": "datum", "typ": "datum"}, {"name": "region", "typ": "text"}, {"name": "produktkategorie", "typ": "text"},
+        {"name": "menge", "typ": "ganzzahl"}, {"name": "umsatz", "typ": "dezimal"},
+    ]
+    upload = pd.DataFrame({
+        "datum": ["2026-03-01"], "region": ["West"], "produktkategorie": ["C"], "menge": ["4"], "umsatz": ["40,5"],
+    })
+    sauber = validate_against_schema(upload, schema)
+    assert uebernehmen(sauber, test_db, "absatz") == 1
+    verbindung = sqlite3.connect(test_db)
+    assert verbindung.execute("SELECT COUNT(*) FROM absatz").fetchone()[0] == 5
+    assert verbindung.execute("SELECT region, menge, umsatz FROM absatz WHERE datum = '2026-03-01'").fetchone() == ("West", 4, 40.5)
+    verbindung.close()
+
+
+def test_falscher_upload_aendert_die_datenbank_nicht(test_db):  # US-10.2: nichts wird geschrieben
+    upload = pd.DataFrame({"datum": ["2026-03-01"], "menge": ["viele"]})
+    schema = [{"name": "datum", "typ": "datum"}, {"name": "menge", "typ": "ganzzahl"}]
+    with pytest.raises(UploadFehler):
+        validate_against_schema(upload, schema)
     verbindung = sqlite3.connect(test_db)
     assert verbindung.execute("SELECT COUNT(*) FROM absatz").fetchone()[0] == 4
     verbindung.close()
