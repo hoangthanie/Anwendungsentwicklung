@@ -19,6 +19,19 @@ MAX_KPIS = 12  # mehr KPIs sprengen das Kontextfenster des lokalen Modells und d
 
 _NAME = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
 _ANKER = re.compile(r"`([^`]+)`")
+# Anwender schreiben Spaltennamen in Anführungszeichen ("Name" oder „Name“); gespeichert werden sie als `Name` (Spaltenanker der Pipeline).
+_ZITAT = re.compile(r'["„“”]([^"„“”`]+)["„“”]')
+_ZITATZEICHEN = re.compile(r'["„“”]')
+
+
+def anfuehrungszeichen_zu_backticks(text: str) -> str:
+    """"Location" und „Location“ -> `Location`. Nicht gepaarte Zeichen bleiben stehen und werden von der Prüfung gemeldet."""
+    return _ZITAT.sub(r"`\1`", text)
+
+
+def backticks_zu_anfuehrungszeichen(text: str) -> str:
+    """`Location` -> "Location" (Anzeige im Formular)."""
+    return _ANKER.sub(r'"\1"', text)
 
 
 class ArtefaktFehler(ValueError):
@@ -34,6 +47,11 @@ class Kpi(BaseModel):
 
     name: str = Field(min_length=1, max_length=80)
     beschreibung: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("beschreibung")
+    @classmethod
+    def _zitate_zu_ankern(cls, wert: str) -> str:
+        return anfuehrungszeichen_zu_backticks(wert)
 
     @property
     def referenzierte_spalten(self) -> list[str]:
@@ -97,9 +115,18 @@ class Artefakt(BaseModel):
                 meldungen.append(f"KPI '{n}' kommt doppelt vor")
 
         for kpi in self.kpis:
+            if kpi.beschreibung.count("`") % 2 == 1 or _ZITATZEICHEN.search(kpi.beschreibung):
+                # ein Zeichen ohne Gegenstück: sonst würde der zugehörige Spaltenname stillschweigend überlesen
+                meldungen.append(
+                    f"KPI '{kpi.name}': Anführungszeichen nicht paarig – jeder Spaltenname braucht ein öffnendes und ein schließendes Anführungszeichen"
+                )
+                continue
             anker = kpi.referenzierte_spalten
             if not anker:
-                meldungen.append(f"KPI '{kpi.name}' referenziert keine Spalte – bitte Backticks setzen (z. B. `spalte`)")
+                meldungen.append(
+                    f"KPI '{kpi.name}' referenziert keine Spalte – bitte Spaltennamen in Anführungszeichen setzen "
+                    '(z. B. "spalte") oder die Spalte unter dem Eingabefeld anklicken'
+                )
             for spalte in anker:
                 if spalte not in namen:
                     vorschlag = aehnliche_spalte(spalte, namen)

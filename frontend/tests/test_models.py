@@ -48,7 +48,7 @@ def test_unbekannte_spalte_wird_abgelehnt():  # TF-004 / US-02.1
 
 def test_kpi_ohne_spaltenanker_wird_abgelehnt():  # TF-005 / US-02.2
     daten = mit(kpis=[{"name": "Gesamt", "beschreibung": "Der gesamte Umsatz des Jahres"}])
-    assert "referenziert keine Spalte – bitte Backticks" in meldungen(daten)
+    assert "referenziert keine Spalte – bitte Spaltennamen in Anführungszeichen" in meldungen(daten)
 
 
 def test_ungueltige_farbe_wird_abgelehnt():  # TF-007 / US-03.1
@@ -166,3 +166,49 @@ def test_zu_grosse_yaml_wird_abgelehnt(tmp_path):
 @pytest.mark.parametrize("feld", ["name", "tabelle"])
 def test_leeres_name_oder_tabellenfeld_wird_wie_ein_leeres_pflichtfeld_gemeldet(feld):
     assert f"Pflichtfeld ist leer: {feld}" in meldungen(mit(**{feld: ""}))
+
+
+# --- Anführungszeichen statt Backticks (Anwender tippen "Name", gespeichert wird `Name`) ---
+
+def kpi(text):
+    return mit(kpis=[{"name": "K", "beschreibung": text}])
+
+
+@pytest.mark.parametrize("text", [
+    'Summe von "umsatz", gruppiert nach "region".',
+    "Summe von „umsatz“, gruppiert nach „region“.",
+    "Summe von \u201cumsatz\u201d, gruppiert nach \u201cregion\u201d.",
+    "Summe von `umsatz`, gruppiert nach `region`.",
+    'Summe von "umsatz", gruppiert nach `region`.',
+])
+def test_anfuehrungszeichen_und_backticks_sind_gleichwertig(text):
+    artefakt = Artefakt.aus_dict(kpi(text))
+    assert artefakt.kpis[0].referenzierte_spalten == ["umsatz", "region"]
+    assert "`umsatz`" in artefakt.kpis[0].beschreibung and '"' not in artefakt.kpis[0].beschreibung  # gespeichert wird mit Backticks
+
+
+def test_yaml_enthaelt_backticks_auch_wenn_mit_anfuehrungszeichen_getippt(tmp_path):
+    artefakt = Artefakt.aus_dict(kpi('Summe von "umsatz"'))
+    ziel = tmp_path / "a.yaml"
+    artefakt.speichern(ziel)
+    assert "`umsatz`" in ziel.read_text(encoding="utf-8")  # Vertrag mit der Pipeline bleibt unverändert
+
+
+def test_unbekannte_spalte_in_anfuehrungszeichen_wird_gemeldet():
+    text = meldungen(kpi('Anzahl je "location"'))
+    assert "unbekannte Spalte: location" in text
+
+
+@pytest.mark.parametrize("text", [
+    'Zeit zwischen "umsatz" und "region in Stunden',  # schließendes Zeichen fehlt
+    'Zeit zwischen "umsatz und region" in Stunden "',  # ein Zeichen zu viel
+    "Zeit zwischen `umsatz` und `region in Stunden",  # auch bei Backticks
+])
+def test_nicht_gepaarte_anfuehrungszeichen_werden_gemeldet_statt_still_uebersehen(text):
+    assert "Anführungszeichen nicht paarig" in meldungen(kpi(text))
+
+
+def test_backticks_zu_anfuehrungszeichen_fuer_die_anzeige():
+    from dashboard_framework.models.artefakt import backticks_zu_anfuehrungszeichen
+
+    assert backticks_zu_anfuehrungszeichen("Summe von `umsatz` je `region`") == 'Summe von "umsatz" je "region"'

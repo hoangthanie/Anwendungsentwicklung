@@ -52,6 +52,13 @@ Würde sie nur im Formular stehen, könnte eine von Hand editierte YAML-Datei di
 Die KPI bleibt **Freitext** (flexibel), aber Spaltennamen stehen in Backticks. Das ist der feste Ankerpunkt für die automatische Prüfung (Konzeptpapier Kap. 5, Architekturentscheidung "Freitext mit Spalten-Anker").
 Ohne Anker kann ein Programm nicht sicher erkennen, welches Wort eine Spalte ist.
 
+### Anführungszeichen statt Backticks, Spalten zum Anklicken (aus dem ersten Test mit einer echten Datei)
+Beim Test mit einer Ticket-Datei hat ein Anwender (Dominik) die Spaltennamen ohne Backticks getippt; Backticks sind für Fachanwender kaum zu schreiben (auf der deutschen Tastatur ist `` ` `` eine "Tottaste"). Außerdem fiel eine Lücke auf: War ein Backtick *nicht gepaart*, wurde der zugehörige Spaltenname **stillschweigend überlesen** (die KPI sah gültig aus). Daraus folgen drei Änderungen:
+1. **Anführungszeichen:** `"Location"` (gerade) und „Location“ (deutsch) gelten als Spaltenverweis, genau wie Backticks. Die Umwandlung geschieht im Modell (`Kpi`-Validator): Gespeichert wird weiterhin `` `Location` ``, damit die `artefakt.yaml` für die Pipeline (David) unverändert bleibt und alle älteren Artefakte gültig sind. Im Formular sieht der Anwender nur Anführungszeichen (`backticks_zu_anfuehrungszeichen` beim Laden).
+2. **Nicht gepaarte Zeichen sind ein Fehler:** "KPI 'x': Anführungszeichen nicht paarig – jeder Spaltenname braucht ein öffnendes und ein schließendes Anführungszeichen". Das gilt auch für Backticks.
+3. **Spalten zum Anklicken:** Unter jedem KPI-Feld stehen die Spalten als Auswahl (`st.pills`). Ein Klick hängt `"Name" ` an das **Ende** des Textes an (`fuege_spalte_ein`). Eine Einfügestelle mitten im Text kennt Streamlit nicht; deshalb ist es Ende-Anhängen (Satz tippen, Spalte anklicken, weitertippen). Dafür ersetzt je ein Eingabefeld pro KPI die frühere Tabelle, denn in eine Tabellenzelle lässt sich nichts einfügen. KPIs werden mit "KPI hinzufügen" und "Entfernen" verwaltet.
+**Abwägung:** Ein normales Anführungszeichen im KPI-Text (z. B. `die "aktiven" Tickets`) gilt jetzt als Spaltenverweis und wird als "unbekannte Spalte" gemeldet. Das ist Absicht (Fail-Fast); es ist selten und die Meldung nennt das Wort.
+
 ### Alle Fehler gemeinsam, aber in zwei Stufen
 Der Anwender bekommt alle Meldungen auf einmal. Einschränkung: Zuerst wird die **Struktur** geprüft (Pflichtfelder, Typen, Namen), danach die **Zusammenhänge** (KPI gegen Spalten).
 Ist die Struktur kaputt, lässt sich der Zusammenhang nicht sinnvoll prüfen (z. B. fehlt die Spaltenliste). Test `test_alle_fehler_gemeinsam` dokumentiert das Verhalten.

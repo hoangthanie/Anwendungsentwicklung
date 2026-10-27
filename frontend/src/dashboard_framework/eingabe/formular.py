@@ -35,6 +35,15 @@ def zeilen_aus_tabelle(df: pd.DataFrame, felder: list[str]) -> list[dict]:
     return zeilen
 
 
+def fuege_spalte_ein(text: str, spalte: str) -> str:
+    """Hängt den Spaltennamen in Anführungszeichen an das Ende des Textes an (mit Leerzeichen dazwischen und danach, zum Weitertippen).
+
+    Eine Einfügestelle mitten im Text kennt Streamlit nicht; angehängt wird deshalb immer am Ende.
+    """
+    basis = text.rstrip()
+    return (basis + " " if basis else "") + f'"{spalte}" '
+
+
 def meldungen_zu_feld(meldungen: list[str], feld: str) -> list[str]:
     """Wählt aus den Prüfmeldungen die aus, die ein bestimmtes Formularfeld betreffen (z. B. 'tabelle'), damit sie direkt unter dem Feld stehen können.
 

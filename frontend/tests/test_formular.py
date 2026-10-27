@@ -75,3 +75,26 @@ def test_meldungen_zu_feld_ordnet_meldungen_dem_feld_zu():
     assert meldungen_zu_feld(meldungen, "ziel") == [meldungen[1]]
     assert meldungen_zu_feld(meldungen, "name") == [meldungen[3]]
     assert meldungen_zu_feld(meldungen, "titel") == []
+
+
+def test_fuege_spalte_ein_haengt_am_ende_an_und_laesst_zum_weitertippen_platz():
+    from dashboard_framework.eingabe.formular import fuege_spalte_ein
+
+    assert fuege_spalte_ein("", "Location") == '"Location" '
+    assert fuege_spalte_ein("Anzahl der Tickets je", "Location") == 'Anzahl der Tickets je "Location" '
+    assert fuege_spalte_ein('Anzahl je "State" ', "Created") == 'Anzahl je "State" "Created" '  # kein doppeltes Leerzeichen
+
+
+def test_eingabe_app_kpi_felder_und_geladene_kpis_erscheinen_mit_anfuehrungszeichen():
+    app = AppTest.from_file(str(APP), default_timeout=30).run()
+    assert not app.exception
+    # vollständig und strukturell gültig, nur die KPI nennt eine Spalte, die es nicht gibt (die Spaltenprüfung läuft erst nach der Strukturprüfung)
+    for feld, wert in {"f_name": "t", "f_titel": "T", "f_ziel": "Z", "f_publikum": "P", "f_tabelle": "tab"}.items():
+        app.session_state[feld] = wert
+    app.session_state["spalten_df"] = pd.DataFrame([{"name": "vorhanden", "typ": "text", "beschreibung": ""}])
+    app.session_state["kpi_name_0"] = "Test"
+    app.session_state["kpi_text_0"] = 'Anzahl je "Gibts_nicht"'
+    app.run()
+    assert not app.exception
+    texte = " ".join(m.value for m in app.markdown)
+    assert "unbekannte Spalte: Gibts_nicht" in texte  # Anführungszeichen werden als Spaltenverweis geprüft

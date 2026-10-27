@@ -19,13 +19,14 @@ import streamlit as st
 from dashboard_framework.eingabe.branding_form import baue_branding
 from dashboard_framework.eingabe.formular import (
     artefakt_aus_formular,
+    fuege_spalte_ein,
     meldungen_zu_feld,
     speichere_artefakt_ordner,
     spalten_vorschlag,
     vorhandene_artefakte,
     zeilen_aus_tabelle,
 )
-from dashboard_framework.models.artefakt import Artefakt, ArtefaktFehler
+from dashboard_framework.models.artefakt import Artefakt, ArtefaktFehler, backticks_zu_anfuehrungszeichen
 from dashboard_framework.models.spalten import SpaltenTyp
 from dashboard_framework.runner.branding import MAX_LOGO_BYTES, BrandingFehler
 from dashboard_framework.runner.framework_lib import UploadFehler, lese_csv
@@ -45,7 +46,8 @@ def _leere_tabelle(felder: list[str]) -> pd.DataFrame:
 
 def _starte() -> None:
     st.session_state.setdefault("spalten_df", _leere_tabelle(SPALTEN_FELDER))
-    st.session_state.setdefault("kpi_df", _leere_tabelle(KPI_FELDER))
+    st.session_state.setdefault("kpi_ids", [0])  # eine Zeile je KPI; die Nummer bleibt stabil, auch wenn Zeilen wegfallen
+    st.session_state.setdefault("kpi_naechste_id", 1)
     st.session_state.setdefault("editor_nr", 0)  # neuer Wert = Tabellen-Editoren starten mit den neuen Daten
     for feld in TEXTFELDER:
         st.session_state.setdefault(feld, "")
@@ -64,10 +66,38 @@ def _lade_vorhandenes(name: str) -> None:
         f_name=artefakt.name, f_titel=artefakt.titel, f_ziel=artefakt.ziel, f_publikum=artefakt.publikum,
         f_tabelle=artefakt.tabelle, f_firmenname=artefakt.branding.firmenname, f_farben=", ".join(artefakt.branding.farben),
         spalten_df=pd.DataFrame([s.model_dump() for s in artefakt.spalten], columns=SPALTEN_FELDER),
-        kpi_df=pd.DataFrame([k.model_dump() for k in artefakt.kpis], columns=KPI_FELDER),
         editor_nr=st.session_state["editor_nr"] + 1,
     )
+    start = st.session_state["kpi_naechste_id"]
+    ids = list(range(start, start + len(artefakt.kpis)))
+    for kid, kpi in zip(ids, artefakt.kpis):
+        st.session_state[f"kpi_name_{kid}"] = kpi.name
+        st.session_state[f"kpi_text_{kid}"] = backticks_zu_anfuehrungszeichen(kpi.beschreibung)  # im Formular Anführungszeichen
+    st.session_state["kpi_ids"], st.session_state["kpi_naechste_id"] = ids, start + len(ids)
     st.session_state.pop("lade_fehler", None)
+
+
+def _neue_kpi() -> None:
+    kid = st.session_state["kpi_naechste_id"]
+    st.session_state["kpi_naechste_id"] = kid + 1
+    st.session_state["kpi_ids"] = [*st.session_state["kpi_ids"], kid]
+
+
+def _entferne_kpi(kid: int) -> None:
+    rest = [i for i in st.session_state["kpi_ids"] if i != kid]
+    if not rest:  # mindestens eine (leere) Zeile bleibt stehen
+        rest = [st.session_state["kpi_naechste_id"]]
+        st.session_state["kpi_naechste_id"] += 1
+    st.session_state["kpi_ids"] = rest
+
+
+def _fuege_spalte_ein(kid: int) -> None:
+    """Callback der Spalten-Knöpfe: hängt den gewählten Spaltennamen an den Text dieser KPI an und setzt die Auswahl zurück."""
+    wahl = st.session_state.get(f"kpi_pill_{kid}")
+    if wahl:
+        schluessel = f"kpi_text_{kid}"
+        st.session_state[schluessel] = fuege_spalte_ein(st.session_state.get(schluessel, ""), wahl)
+    st.session_state[f"kpi_pill_{kid}"] = None
 
 
 def _farbfelder(farben: list[str]) -> str:
@@ -164,19 +194,26 @@ def main() -> None:
         st.markdown(feldkopf("Kennzahlen (KPIs)", 3), unsafe_allow_html=True)
         namen = [s["name"] for s in spalten if s["name"]]
         st.caption(
-            "Beschreiben Sie jede Kennzahl in einem Satz. **Setzen Sie jeden Spaltennamen in Backticks**, z. B. Summe von `spalte_a`, gruppiert nach `spalte_b`. "
-            "So prüft das System vorab, ob die Spalten existieren."
+            'Beschreiben Sie jede Kennzahl in einem Satz und setzen Sie jeden Spaltennamen in Anführungszeichen, '
+            'z. B. Summe von "spalte_a", gruppiert nach "spalte_b". Einfacher: Tippen Sie den Satz und klicken Sie die Spalte '
+            'darunter an, der Name wird dann richtig am Ende eingefügt. So prüft das System vorab, ob die Spalten existieren.'
         )
-        if namen:
-            st.caption("Verfügbare Spalten: " + ", ".join(f"`{n}`" for n in namen))
-        kpi_df = st.data_editor(
-            st.session_state["kpi_df"], key=f"kpis_{nr}", num_rows="dynamic", hide_index=True, width="stretch",
-            column_config={
-                "name": st.column_config.TextColumn("Name der KPI", required=True),
-                "beschreibung": st.column_config.TextColumn("Berechnung (Spalten in Backticks)", required=True, width="large"),
-            },
-        )
-        kpis = zeilen_aus_tabelle(kpi_df, KPI_FELDER)
+        if not namen:
+            st.caption("Die Spalten erscheinen hier zum Anklicken, sobald sie oben (Feld 2) eingetragen sind.")
+        for kid in st.session_state["kpi_ids"]:
+            spalte_n, spalte_t, spalte_x = st.columns([1.3, 3, 0.7], gap="small", vertical_alignment="bottom")
+            spalte_n.text_input("Name der KPI", key=f"kpi_name_{kid}", placeholder="z. B. Tickets je Standort")
+            spalte_t.text_input("Berechnung", key=f"kpi_text_{kid}", placeholder='z. B. Anzahl der Tickets je "Spalte"')
+            spalte_x.button("Entfernen", key=f"kpi_weg_{kid}", on_click=_entferne_kpi, args=(kid,))
+            if namen:
+                st.pills("Spalte einfügen", namen, selection_mode="single", key=f"kpi_pill_{kid}",
+                         on_change=_fuege_spalte_ein, args=(kid,))
+        st.button("KPI hinzufügen", key="kpi_neu", on_click=_neue_kpi)
+        kpis = [
+            {"name": st.session_state.get(f"kpi_name_{kid}", "").strip(), "beschreibung": st.session_state.get(f"kpi_text_{kid}", "").strip()}
+            for kid in st.session_state["kpi_ids"]
+        ]
+        kpis = [k for k in kpis if k["name"] or k["beschreibung"]]  # ganz leere Zeilen zählen nicht
 
     with st.container(border=True, key="feld_branding"):
         st.markdown(feldkopf("Branding", 4), unsafe_allow_html=True)

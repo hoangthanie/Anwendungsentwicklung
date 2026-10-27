@@ -64,5 +64,15 @@ Format: Kontext – Alternativen – Entscheidung – Konsequenz. Neueste Eintr�
 - **Entscheidung:** Nach `max_versuche` ungültiger Antworten gibt es einen `DashboardFehler`, keine Standard-Konfiguration.
 - **Warum:** Fail-Fast: Ein Ersatz würde ein untaugliches Modell/Prompt verstecken. Ein expliziter Ersatzmodus wäre später möglich.
 
+## E-15 – Spaltenverweise in Anführungszeichen, Speicherung mit Backticks (2026-10-27)
+- **Kontext:** Test mit echter Ticket-Datei: Backticks sind für Fachanwender nicht zumutbar; ein ungepaarter Backtick wurde stillschweigend überlesen.
+- **Alternativen:** (A) Backticks beibehalten und besser erklären, (B) nur noch Anführungszeichen (Vertrag mit der Pipeline ändern), (C) Anführungszeichen **und** Backticks erlaubt, gespeichert wird Backtick.
+- **Entscheidung:** C, dazu Fehlermeldung bei nicht gepaarten Zeichen und anklickbare Spalten.
+- **Warum:** Der Anwender tippt Gewohntes; der Vertrag `artefakt.yaml` und alte Dateien bleiben unverändert. Mit David abstimmen, falls seine Pipeline Backticks nicht nur aus dem Artefakt, sondern auch aus Rohtext erwartet. Details: docs/06-eingabe.md.
+
+## E-16 – Datum mit Uhrzeit (2026-10-27)
+- **Kontext:** Ticket-CSV mit `27.10.2026 11:20:10`; der Typ `datum` kannte nur Datumsangaben und schlug "text" vor.
+- **Entscheidung:** `datum` akzeptiert ISO und deutsche Schreibweise, jeweils mit oder ohne Uhrzeit. Gespeichert wird `JJJJ-MM-TT` bzw. `JJJJ-MM-TT HH:MM:SS` (nur wenn die Daten eine Uhrzeit enthalten). Gemischte Formate in einer Spalte bleiben ein Fehler.
+
 ## E-05 – Reihenfolge: Runner zuerst (2026-10-27)
 - **Warum:** Der Runner braucht kein LLM, nur eine Beispiel-`dashboard.json` und eine Test-DB. Er ist früh sichtbar (Demo-fähig) und prägt das Format, das die Pipeline erzeugen muss. Danach Upload, Formular, Branding.
