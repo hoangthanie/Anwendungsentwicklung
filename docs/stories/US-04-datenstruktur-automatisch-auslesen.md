@@ -1,64 +1,45 @@
-# Qualitäts-Gate für jeden Push und Pull Request – PSP AP 4.3 (Stephanie Jayhooni)
-# Abnahmekriterium AP 4.3: „Pipeline läuft bei jedem PR grün/rot“.
-# Läuft auf GitHub-Servern, ohne Sprachmodell, nur mit synthetischen Testdaten.
-# Weitere Teile (backend/, docs/) werden ergänzt, sobald die Ordner existieren.
-name: ci
+# US-04 Datenstruktur automatisch auslesen
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-  workflow_dispatch:
+| Epic | PSP | Verantwortlich | Priorität (Entwurf AP 3.1) |
+|---|---|---|---|
+| E2 Agenten-Pipeline | 5.3 | DZ | Must |
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+> **Als** Pipeline **möchte ich** Spalten, Typen und Beispielwerte direkt aus der Datenbank lesen, **damit** das LLM nichts über die Datenstruktur raten muss und Abweichungen zum Artefakt auffallen.
 
-permissions:
-  contents: read
+## Akzeptanzkriterien
 
-jobs:
-  frontend-tests:
-    name: Frontend – Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: frontend/requirements.txt
-      - name: Abhängigkeiten installieren
-        run: pip install -r requirements.txt
-      - name: Tests ausführen (pytest)
-        run: pytest -q
+Status je Kriterium: siehe Backlog-Excel (Blatt „Akzeptanzkriterien“) bzw. Ergebnis der CI.
 
-  frontend-lint:
-    name: Frontend – Code-Stil (Hinweis)
-    runs-on: ubuntu-latest
-    continue-on-error: true   # zunächst nur Hinweis, blockiert nichts
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install ruff
-      - name: ruff
-        run: ruff check src tests --output-format=github
+### US-04.1 Schema aus der DB lesen
 
-  secrets-scan:
-    name: Sicherheit – keine Zugangsdaten im Repo
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+- **Gegeben** eine SQLite-Tabelle absatz
+- **Wenn** lese_schema() aufgerufen wird
+- **Dann** liefert es alle Spalten in Reihenfolge mit SQLite-Typ
+- **Test:** `test_us04_schema.py::test_schema_wird_aus_db_gelesen`
+
+### US-04.2 Abgleich Artefakt ↔ Daten
+
+- **Gegeben** Artefakt und tatsächliche Daten unterscheiden sich
+- **Wenn** abgleich() aufgerufen wird
+- **Dann** nennt je Abweichung eine verständliche Meldung; bei Übereinstimmung ist die Liste leer
+- **Test:** `test_us04_schema.py::test_abweichung_artefakt_vs_daten_wird_gemeldet, ::test_passendes_schema_ohne_meldung`
+
+### US-04.3 Beispielwerte begrenzen
+
+- **Gegeben** eine Tabelle mit vielen Zeilen
+- **Wenn** das Schema gelesen wird
+- **Dann** enthält jede Spalte 1–3 Beispielwerte (Token sparen)
+- **Test:** `test_us04_schema.py::test_hoechstens_drei_beispielwerte`
+
+## Schnittstelle (Vorschlag aus dem Testkonzept)
+
+Modul: `frontend/src/ bzw. backend/src/ – dashboard_framework/harness/schema.py`
+
+```python
+lese_schema(db_pfad, tabelle) -> list[SpaltenInfo]
+abgleich(artefakt: Artefakt, schema: list[SpaltenInfo]) -> list[str]
+```
+
+## Hinweise
+
+Rein deterministisch, kein LLM-Aufruf (Spez. 3.1). DB read-only öffnen (validators.verbinde_nur_lesend).
