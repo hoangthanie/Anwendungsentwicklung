@@ -98,3 +98,17 @@ def test_eingabe_app_kpi_felder_und_geladene_kpis_erscheinen_mit_anfuehrungszeic
     assert not app.exception
     texte = " ".join(m.value for m in app.markdown)
     assert "unbekannte Spalte: Gibts_nicht" in texte  # Anführungszeichen werden als Spaltenverweis geprüft
+
+
+def test_eingabe_app_gueltiges_artefakt_mit_leeren_beschreibungen_zeigt_hinweis_statt_fehler():
+    """Regression: Ergebnisfeld läuft durch (kein AttributeError) und zeigt einen Hinweis, das Artefakt bleibt gültig."""
+    app = AppTest.from_file(str(APP), default_timeout=30).run()
+    for feld, wert in {"f_name": "t", "f_titel": "T", "f_ziel": "Z", "f_publikum": "P", "f_tabelle": "tab"}.items():
+        app.session_state[feld] = wert
+    app.session_state["spalten_df"] = pd.DataFrame([{"name": "a", "typ": "text", "beschreibung": ""}])
+    app.session_state["kpi_name_0"] = "K"
+    app.session_state["kpi_text_0"] = 'Anzahl je "a"'
+    app.run()
+    assert not app.exception
+    texte = " ".join(m.value for m in app.markdown)
+    assert "marke-gueltig" in texte and "Ohne Beschreibung: a" in texte and "raten" in texte
