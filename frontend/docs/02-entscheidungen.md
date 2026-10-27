@@ -43,5 +43,17 @@ Format: Kontext – Alternativen – Entscheidung – Konsequenz. Neueste Eintr�
 ## E-09 – Festes helles Theme (2026-10-27)
 - **Warum:** Firmenfarben sind für helle Hintergründe gestaltet; auf dunklem Theme war Marineblau kaum lesbar. Preis: Das Theme folgt nicht der Einstellung des Betrachters.
 
+## E-10 – Prüfregeln im Artefakt-Modell statt im Formular (2026-10-27)
+- **Alternativen:** (A) Prüfung nur im Formular, (B) im Modell (`model_validator`).
+- **Entscheidung:** B.
+- **Warum:** Jeder Weg zum Artefakt (Formular, von Hand editierte YAML, Pipeline) läuft durch dieselbe Prüfung; sonst ließe sich Fail-Fast umgehen. Details: docs/06-eingabe.md.
+
+## E-11 – Strenge Bezeichner und `extra="forbid"` (2026-10-27)
+- **Entscheidung:** `name`, `tabelle` und Spaltennamen nur Buchstaben/Ziffern/`_` (kein Leerzeichen); unbekannte YAML-Felder sind Fehler; höchstens 12 KPIs.
+- **Warum:** Diese Werte werden Ordnernamen und SQL; Tippfehler in Feldnamen würden sonst still ignoriert. **Preis:** Dateien mit Leerzeichen in Spaltennamen müssen umbenannt werden (Meldung erklärt das). Mit David abstimmen.
+
+## E-12 – YAML mit `safe_load` und Größenlimit (2026-10-27)
+- **Warum:** `yaml.load` kann Code ausführen; `safe_load` nicht. Teil des Sicherheitskonzepts (AP 4.6).
+
 ## E-05 – Reihenfolge: Runner zuerst (2026-10-27)
 - **Warum:** Der Runner braucht kein LLM, nur eine Beispiel-`dashboard.json` und eine Test-DB. Er ist früh sichtbar (Demo-fähig) und prägt das Format, das die Pipeline erzeugen muss. Danach Upload, Formular, Branding.

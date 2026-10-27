@@ -1,0 +1,23 @@
+name: sales
+titel: Vertriebs-Dashboard
+ziel: Transparenz über Umsatz nach Region, Zeitverlauf und Produktkategorie
+publikum: Vertriebsleitung eines mittelständischen Herstellers
+tabelle: absatz
+spalten:
+- { name: datum,            typ: datum,    beschreibung: Verkaufstag }
+- { name: region,           typ: text,     beschreibung: Vertriebsregion }
+- { name: produktkategorie, typ: text,     beschreibung: Produktgruppe }
+- { name: menge,            typ: ganzzahl, beschreibung: Verkaufte Stückzahl }
+- { name: umsatz,           typ: dezimal,  beschreibung: Nettoumsatz in Euro }
+kpis:
+- name: Umsatz nach Region
+  beschreibung: Summe von `umsatz`, gruppiert nach `region`.
+- name: Umsatzverlauf
+  beschreibung: Summe von `umsatz` je Monat aus `datum`.
+- name: Top-Produkte
+  beschreibung: Die fünf `produktkategorie`-Werte mit der höchsten Summe von `menge`.
+- name: Zielerreichung ggü. Vorperiode
+  beschreibung: Summe von `umsatz` im aktuellen Monat geteilt durch die im Vormonat.
+branding:
+  firmenname: Muster GmbH
+  farben: ["#1F3864", "#ED7D31", "#70AD47"]

@@ -1,0 +1,22 @@
+# ENTWURF zum Generizitäts-Nachweis (PSP 7.4, David Zöller): strukturell anderes Artefakt für dieselbe Pipeline.
+# Hier nur als gültiges Beispiel für die Modell-Prüfung; Inhalt und Daten bitte mit David abstimmen.
+name: aktivitaet
+titel: Aktivitätsmonitor
+ziel: Überblick, wie aktiv das Team über die Zeit arbeitet und welche Aktionen am häufigsten vorkommen
+publikum: Teamleitung
+tabelle: aktivitaeten
+spalten:
+- { name: zeitpunkt, typ: datum,    beschreibung: Tag der Aktivität }
+- { name: person,    typ: text,     beschreibung: Name der handelnden Person }
+- { name: aktion,    typ: text,     beschreibung: Art der Aktivität }
+- { name: dauer_min, typ: ganzzahl, beschreibung: Dauer in Minuten }
+kpis:
+- name: Aktivitäten je Person
+  beschreibung: Anzahl der Einträge je `person`.
+- name: Dauer im Zeitverlauf
+  beschreibung: Summe von `dauer_min` je Monat aus `zeitpunkt`.
+- name: Häufigste Aktionen
+  beschreibung: Die fünf `aktion`-Werte mit den meisten Einträgen.
+branding:
+  firmenname: Beispiel AG
+  farben: ["#2E7D32", "#F9A825"]

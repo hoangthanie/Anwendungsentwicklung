@@ -54,7 +54,7 @@ def _text_bereinigen(serie: pd.Series) -> pd.Series:
     return serie.where(serie.notna(), "").astype(str).str.strip()
 
 
-def _konvertiere(serie: pd.Series, typ: str) -> pd.Series:
+def konvertiere_spalte(serie: pd.Series, typ: str) -> pd.Series:
     """Wandelt eine Spalte in den Zieltyp um; wirft ValueError, wenn ein Wert nicht passt."""
     s = _text_bereinigen(serie)
     if typ == "text":
@@ -90,7 +90,7 @@ def _konvertiere(serie: pd.Series, typ: str) -> pd.Series:
 def _erster_fehlerwert(serie: pd.Series, typ: str) -> str:
     for position, wert in enumerate(serie.tolist()):
         try:
-            _konvertiere(pd.Series([wert]), typ)
+            konvertiere_spalte(pd.Series([wert]), typ)
         except ValueError:
             return f"'{wert}' in Zeile {position + 2}"  # +2: Kopfzeile und 1-basierte Zählung wie in Excel
     return "?"
@@ -122,7 +122,7 @@ def validate_against_schema(df: pd.DataFrame, schema: list[SpaltenDef | dict]) -
         if spalte.name not in ist or len(df) == 0:
             continue
         try:
-            ergebnis[spalte.name] = _konvertiere(df[spalte.name], spalte.typ)
+            ergebnis[spalte.name] = konvertiere_spalte(df[spalte.name], spalte.typ)
         except ValueError as grund:
             # Bewusst nicht str(grund) ausgeben: pandas-Texte sind englisch und für Fachanwender unverständlich.
             if str(grund) == "leere Werte":
