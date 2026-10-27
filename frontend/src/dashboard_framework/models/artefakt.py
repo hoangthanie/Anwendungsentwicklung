@@ -138,6 +138,12 @@ class Artefakt(BaseModel):
         return self
 
     @property
+    def spalten_ohne_beschreibung(self) -> list[str]:
+        """Spalten ohne Beschreibung. Das ist KEIN Fehler (Entscheidung: Hinweis statt Pflicht), aber das Sprachmodell muss dann raten,
+        was die Spalte bedeutet; aus den Werten lässt sich das nicht zuverlässig ableiten (Spezifikation 3.1)."""
+        return [s.name for s in self.spalten if not s.beschreibung.strip()]
+
+    @property
     def benoetigte_spalten(self) -> list[str]:
         """Alle von KPIs verwendeten Spalten (ohne Doppelte, in Reihenfolge des Auftretens)."""
         return list(dict.fromkeys(s for k in self.kpis for s in k.referenzierte_spalten))

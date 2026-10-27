@@ -15,3 +15,6 @@ __pycache__/
 .impeccable/questions/
 .impeccable/build/
 .impeccable/decision-payload.json
+
+# Lokale Pipeline-Ausgabe (Daten und evtl. Firmenlogos): nicht einchecken
+ausgabe/

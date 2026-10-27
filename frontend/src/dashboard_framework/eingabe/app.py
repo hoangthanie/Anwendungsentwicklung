@@ -189,6 +189,9 @@ def main() -> None:
             },
         )
         spalten = zeilen_aus_tabelle(spalten_df, SPALTEN_FELDER)
+        ohne_text = [s["name"] for s in spalten if s["name"] and not s["beschreibung"]]
+        if ohne_text:  # Hinweis, keine Pflicht: leere Beschreibungen sind erlaubt
+            st.markdown(marke("Hinweis", "hinweis") + f" Ohne Beschreibung: {esc(', '.join(ohne_text))}. Das Artefakt bleibt gültig, aber das Sprachmodell muss dann raten, was diese Spalte(n) bedeuten. Aus den Werten allein lässt sich das nicht zuverlässig ableiten.", unsafe_allow_html=True)
 
     with st.container(border=True, key="feld_kpis"):
         st.markdown(feldkopf("Kennzahlen (KPIs)", 3), unsafe_allow_html=True)
@@ -273,10 +276,16 @@ def main() -> None:
             return
 
         st.markdown(marke("gültig", "gueltig"), unsafe_allow_html=True)
+        if artefakt.spalten_ohne_beschreibung:
+            st.markdown(
+                marke("Hinweis", "hinweis") + f" Ohne Beschreibung: {esc(', '.join(artefakt.spalten_ohne_beschreibung))}. Das Artefakt bleibt gültig, aber das Sprachmodell muss dann raten, was diese Spalte(n) bedeuten. Aus den Werten allein lässt sich das nicht zuverlässig ableiten.",
+                unsafe_allow_html=True,
+            )
         if branding.farben:
             st.markdown(_farbfelder(branding.farben), unsafe_allow_html=True)
         if logo:
-            st.image(logo, width=96, caption="So wird das Logo gespeichert (neu erzeugtes PNG)")
+            st.image(logo, width=160)  # Breite statt 96 px: breite Wortmarken sind sonst kaum zu erkennen
+            st.caption("So wird das Logo gespeichert (neu erzeugtes PNG).")  # eigene Zeile: in der schmalen Bildspalte brach die Unterschrift in sechs Zeilen um
         st.code(artefakt.zu_yaml(), language="yaml")
         st.download_button("artefakt.yaml herunterladen", data=artefakt.zu_yaml(), file_name="artefakt.yaml", mime="text/yaml")
         ueberschreiben = False

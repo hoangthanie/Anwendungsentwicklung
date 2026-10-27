@@ -36,6 +36,13 @@ def meldungen(daten) -> str:
     return " | ".join(fehler.value.meldungen)
 
 
+def test_leere_spaltenbeschreibung_ist_ein_hinweis_kein_fehler():
+    ohne = Artefakt.aus_dict(mit(spalten=[{"name": "region", "typ": "text"}, {"name": "umsatz", "typ": "dezimal", "beschreibung": "Euro"}]))
+    assert ohne.spalten_ohne_beschreibung == ["region"]  # gültig, aber als Hinweis auffindbar
+    mit_text = Artefakt.aus_dict(mit(spalten=[{"name": "region", "typ": "text", "beschreibung": "Vertriebsregion"}, {"name": "umsatz", "typ": "dezimal", "beschreibung": " "}]))
+    assert mit_text.spalten_ohne_beschreibung == ["umsatz"]  # nur Leerzeichen zählt als leer
+
+
 def test_gueltiges_artefakt():
     artefakt = Artefakt.aus_dict(GUELTIG)
     assert artefakt.benoetigte_spalten == ["umsatz", "region"]
