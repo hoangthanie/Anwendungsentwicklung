@@ -74,11 +74,20 @@ def konvertiere_spalte(serie: pd.Series, typ: str) -> pd.Series:
             raise ValueError("keine endliche Zahl")
         return zahl
     if typ == "datum":
-        try:
-            datum = pd.to_datetime(s, format="ISO8601", errors="raise")
-        except ValueError:
-            datum = pd.to_datetime(s, format="%d.%m.%Y", errors="raise")
-        return datum.dt.strftime("%Y-%m-%d")  # als Text in ISO-Form: sortierbar und mit strftime in SQLite nutzbar
+        # Akzeptiert ISO (2026-12-31, auch mit Uhrzeit) und deutsche Schreibweise (31.12.2026, auch mit Uhrzeit, z. B. 31.12.2026 11:20:10).
+        # Eine Spalte hat ein Format; gemischte Formate sind unklar und werden abgelehnt.
+        datum = None
+        for format in ("ISO8601", "%d.%m.%Y %H:%M:%S", "%d.%m.%Y %H:%M", "%d.%m.%Y"):
+            try:
+                datum = pd.to_datetime(s, format=format, errors="raise")
+                break
+            except ValueError:
+                continue
+        if datum is None:
+            raise ValueError("kein Datum")
+        mit_uhrzeit = bool(s.str.contains(":", regex=False).any())  # Uhrzeit nur speichern, wenn die Daten eine enthalten
+        # als Text in ISO-Form: sortierbar und mit strftime in SQLite nutzbar
+        return datum.dt.strftime("%Y-%m-%d %H:%M:%S" if mit_uhrzeit else "%Y-%m-%d")
     if typ == "bool":
         klein = s.str.lower()
         if not klein.isin(_WAHR | _FALSCH).all():

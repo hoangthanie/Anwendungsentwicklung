@@ -126,7 +126,7 @@ def test_schriftdateien_in_beiden_apps_gleich_und_in_der_config_eingetragen():
 
 def test_formatiere_datum():
     assert formatiere_datum("2026-12-31") == "31.12.2026"
-    assert formatiere_datum("2026-12-31 10:00:00") == "31.12.2026"
+    assert formatiere_datum("2026-12-31 10:00:00") == "31.12.2026 10:00"
     assert formatiere_datum("kein Datum") == "kein Datum"
     assert formatiere_datum(None) is None and formatiere_datum("  ") is None
 
@@ -172,3 +172,7 @@ def test_formatiere_vorschau_deutsche_schreibweise():
     zeile = formatiere_vorschau(df, spalten).iloc[0].tolist()
     assert zeile == ["15.12.2026", "12.000,50", "1.234.567", "ja", "Nord"]
     assert df.iloc[0]["d"] == "2026-12-15"  # das Original bleibt unverändert (gespeichert wird ISO)
+
+
+def test_formatiere_datum_mit_uhrzeit():
+    assert formatiere_datum("2026-10-27 11:20:10") == "27.10.2026 11:20"

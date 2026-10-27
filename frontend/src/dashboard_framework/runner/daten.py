@@ -92,11 +92,13 @@ def formatiere_vorschau(df: pd.DataFrame, spalten: list) -> pd.DataFrame:
 
 
 def formatiere_datum(wert: object) -> str | None:
-    """'2026-12-31' -> '31.12.2026'. Alles andere bleibt Text; leer wird None."""
+    """'2026-12-31' -> '31.12.2026'; mit Uhrzeit '2026-12-31 11:20:10' -> '31.12.2026 11:20'. Alles andere bleibt Text; leer wird None."""
     if wert is None or str(wert).strip() == "":
         return None
     text = str(wert).strip()
     try:
+        if len(text) > 10 and ":" in text:
+            return datetime.strptime(text[:16], "%Y-%m-%d %H:%M").strftime("%d.%m.%Y %H:%M")
         return datetime.strptime(text[:10], "%Y-%m-%d").strftime("%d.%m.%Y")
     except ValueError:
         return text

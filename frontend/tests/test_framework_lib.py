@@ -144,3 +144,20 @@ def test_vorhandene_zeilen_werden_gezaehlt(test_db):
         "produktkategorie": ["A", "A"], "menge": [10, 1], "umsatz": [100.0, 1.0],
     })
     assert zaehle_vorhandene_zeilen(df, test_db, "absatz") == 1
+
+
+def test_datum_mit_uhrzeit_deutsch_und_iso():
+    schema = [{"name": "t", "typ": "datum"}]
+    deutsch = validate_against_schema(pd.DataFrame({"t": ["27.10.2026 11:20:10", "26.10.2026 23:14:38"]}), schema)
+    assert deutsch["t"].tolist() == ["2026-10-27 11:20:10", "2026-10-26 23:14:38"]  # mit Uhrzeit gespeichert, sortierbar
+    iso = validate_against_schema(pd.DataFrame({"t": ["2026-10-27 11:20:10"]}), schema)
+    assert iso["t"].tolist() == ["2026-10-27 11:20:10"]
+    ohne = validate_against_schema(pd.DataFrame({"t": ["27.10.2026", "01.01.2027"]}), schema)
+    assert ohne["t"].tolist() == ["2026-10-27", "2027-01-01"]  # ohne Uhrzeit in den Daten wird auch keine erfunden
+    kurz = validate_against_schema(pd.DataFrame({"t": ["27.10.2026 11:20"]}), schema)
+    assert kurz["t"].tolist() == ["2026-10-27 11:20:00"]
+
+
+def test_datum_mit_gemischten_formaten_wird_abgelehnt():
+    with pytest.raises(UploadFehler, match="nicht vom Typ datum"):
+        validate_against_schema(pd.DataFrame({"t": ["27.10.2026 11:20:10", "2026-10-27"]}), [{"name": "t", "typ": "datum"}])
