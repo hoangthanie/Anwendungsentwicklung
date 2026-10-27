@@ -236,6 +236,7 @@ def erzeuge_config(
                 farbe=w.farbe.upper() if w.farbe else None,
                 sortierung=w.sortierung,
                 breite=w.breite,
+                beschreibung=kpi.beschreibung,  # vom Code gesetzt, nicht vom Modell: so bleibt die Herkunft der Zahl nachvollziehbar
             )
         )
     return DashboardConfig(

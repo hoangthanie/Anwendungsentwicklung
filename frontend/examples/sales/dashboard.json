@@ -4,15 +4,39 @@
   "tabelle": "absatz",
   "db_pfad": "daten.db",
   "spalten": [
-    { "name": "datum", "typ": "datum", "beschreibung": "Verkaufstag" },
-    { "name": "region", "typ": "text", "beschreibung": "Vertriebsregion" },
-    { "name": "produktkategorie", "typ": "text", "beschreibung": "Produktgruppe" },
-    { "name": "menge", "typ": "ganzzahl", "beschreibung": "Verkaufte Stückzahl" },
-    { "name": "umsatz", "typ": "dezimal", "beschreibung": "Nettoumsatz in Euro" }
+    {
+      "name": "datum",
+      "typ": "datum",
+      "beschreibung": "Verkaufstag"
+    },
+    {
+      "name": "region",
+      "typ": "text",
+      "beschreibung": "Vertriebsregion"
+    },
+    {
+      "name": "produktkategorie",
+      "typ": "text",
+      "beschreibung": "Produktgruppe"
+    },
+    {
+      "name": "menge",
+      "typ": "ganzzahl",
+      "beschreibung": "Verkaufte Stückzahl"
+    },
+    {
+      "name": "umsatz",
+      "typ": "dezimal",
+      "beschreibung": "Nettoumsatz in Euro"
+    }
   ],
   "branding": {
     "firmenname": "Muster GmbH",
-    "farben": ["#1F3864", "#ED7D31", "#70AD47"],
+    "farben": [
+      "#1F3864",
+      "#ED7D31",
+      "#70AD47"
+    ],
     "logo": "logo.png"
   },
   "doku": "**Zweck:** Transparenz über Umsatz nach Region, Zeitverlauf und Produktkategorie.\n\n**Zielgruppe:** Vertriebsleitung eines mittelständischen Herstellers.\n\n**Daten:** synthetische Absatzdaten (Beispiel).",
@@ -22,26 +46,29 @@
       "typ": "balken",
       "sql": "SELECT region, SUM(umsatz) AS umsatz FROM absatz GROUP BY region",
       "sortierung": "absteigend",
-      "breite": "halb"
+      "breite": "halb",
+      "beschreibung": "Summe von umsatz, gruppiert nach region."
     },
     {
       "titel": "Umsatzverlauf",
       "typ": "linie",
       "sql": "SELECT strftime('%Y-%m', datum) AS monat, SUM(umsatz) AS umsatz FROM absatz GROUP BY monat ORDER BY monat",
-      "farbe": "#ED7D31",
-      "breite": "halb"
+      "breite": "halb",
+      "beschreibung": "Summe von umsatz je Monat aus datum."
     },
     {
       "titel": "Top-Produkte",
       "typ": "tabelle",
       "sql": "SELECT produktkategorie, SUM(menge) AS menge FROM absatz GROUP BY produktkategorie ORDER BY menge DESC LIMIT 5",
-      "breite": "halb"
+      "breite": "halb",
+      "beschreibung": "Die fünf produktkategorie-Werte mit der höchsten Summe von menge."
     },
     {
       "titel": "Zielerreichung ggü. Vorperiode (%)",
       "typ": "kennzahl",
       "sql": "WITH m AS (SELECT strftime('%Y-%m', datum) AS monat, SUM(umsatz) AS u FROM absatz GROUP BY monat ORDER BY monat DESC LIMIT 2) SELECT ROUND(100.0 * (SELECT u FROM m ORDER BY monat DESC LIMIT 1) / (SELECT u FROM m ORDER BY monat ASC LIMIT 1), 1) AS zielerreichung",
-      "breite": "halb"
+      "breite": "halb",
+      "beschreibung": "Summe von umsatz im aktuellen Monat geteilt durch die im Vormonat."
     }
   ]
 }

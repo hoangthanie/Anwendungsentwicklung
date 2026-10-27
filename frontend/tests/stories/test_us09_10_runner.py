@@ -87,6 +87,21 @@ def test_figur_nutzt_chart_farbe_vor_firmenfarbe(config_region, test_db):
 
 
 def test_kennzahl_formatierung():
-    assert kennzahl_wert(pd.DataFrame({"v": [1234567]})) == "1 234 567"
-    assert kennzahl_wert(pd.DataFrame({"v": [12.5]})) == "12.50"
+    assert kennzahl_wert(pd.DataFrame({"v": [1234567]})) == "1.234.567"  # Punkt als Tausendertrenner, wie in den Diagrammen
+    assert kennzahl_wert(pd.DataFrame({"v": [12.5]})) == "12,5"  # deutsches Dezimalkomma, keine überflüssige Null
+    assert kennzahl_wert(pd.DataFrame({"v": [103.2]})) == "103,2"
+    assert kennzahl_wert(pd.DataFrame({"v": [1234.567]})) == "1.234,57"
     assert kennzahl_wert(pd.DataFrame({"v": []})) == "n/a"
+
+
+def test_balken_zeigen_werte_und_keinen_x_titel(config_region, test_db):
+    df = lade_chart_daten(config_region, test_db)["Umsatz nach Region"]
+    fig = erstelle_figur(config_region.charts[0], df, ["#1F3864"])
+    assert list(fig.data[0].text) == [150.0, 70.0, 30.0] or set(fig.data[0].text) == {150.0, 70.0, 30.0}
+    assert "texttemplate" in fig.data[0].to_plotly_json() and fig.layout.xaxis.title.text is None
+
+
+def test_viele_balken_bekommen_keine_beschriftung():
+    df = pd.DataFrame({"k": [f"k{i}" for i in range(20)], "v": range(20)})
+    fig = erstelle_figur(Chart(titel="x", typ="balken", sql="SELECT 1"), df, [])
+    assert fig.data[0].text is None

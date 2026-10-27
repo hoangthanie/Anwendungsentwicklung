@@ -49,7 +49,8 @@ def test_vorhandene_artefakte(tmp_path):
 def test_eingabe_app_startet_und_wartet_auf_eingaben():
     app = AppTest.from_file(str(APP), default_timeout=30).run()
     assert not app.exception
-    assert any("Füllen Sie die Felder" in i.value for i in app.info)
+    texte = " ".join(m.value for m in app.markdown)
+    assert "Füllen Sie die Felder" in texte and "noch leer" in texte
 
 
 def test_eingabe_app_meldet_fehler_sofort():

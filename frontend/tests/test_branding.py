@@ -13,7 +13,6 @@ from dashboard_framework.runner.branding import (
     normalisiere_farben,
     pruefe_logo_bytes,
     speichere_logo,
-    theme_css,
 )
 
 
@@ -106,12 +105,6 @@ def test_farben_werden_normalisiert_und_ungueltige_gemeinsam_gemeldet():
     with pytest.raises(BrandingFehler) as fehler:
         normalisiere_farben(["blau", "#12345", "#GGGGGG", "#1F3864"])
     assert "blau" in str(fehler.value) and "#12345" in str(fehler.value) and "#GGGGGG" in str(fehler.value)
-
-
-def test_theme_css_nur_mit_gueltiger_farbe():
-    assert "#1F3864" in theme_css(["#1F3864"])
-    assert theme_css([]) == ""
-    assert theme_css(["red; } body { display:none"]) == ""  # eingeschleustes CSS wird nicht ausgegeben
 
 
 def test_farben_aus_text():

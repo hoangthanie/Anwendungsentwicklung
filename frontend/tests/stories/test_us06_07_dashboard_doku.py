@@ -188,3 +188,11 @@ def test_ergebnis_ist_speicherbar_und_ladbar(artefakt, sql_je_kpi, tmp_path):
     config = erzeuge_config(artefakt, sql_je_kpi, FakeLLM([wahl(artefakt)]))
     config.speichern(tmp_path / "dashboard.json")
     assert DashboardConfig.laden(tmp_path / "dashboard.json") == config
+
+
+def test_beschreibung_der_berechnung_kommt_aus_dem_artefakt_nicht_vom_modell(artefakt, sql_je_kpi):
+    antwort = wahl(artefakt)
+    antwort["charts"][0]["beschreibung"] = "vom Modell erfunden"  # Zusatzfeld: wird abgelehnt
+    llm = FakeLLM([antwort, wahl(artefakt)])
+    config = erzeuge_config(artefakt, sql_je_kpi, llm)
+    assert [c.beschreibung for c in config.charts] == [k.beschreibung for k in artefakt.kpis]

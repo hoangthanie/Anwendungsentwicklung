@@ -8,3 +8,10 @@ __pycache__/
 *.db
 .env
 .streamlit/secrets.toml
+# Impeccable (Gestaltungs-Skill): Arbeitsstand wie Skizzen, Belegaufnahmen und Auswahlseite nicht einchecken.
+# PRODUCT.md, DESIGN.md und .impeccable/surfaces/ (Gestaltungsvertrag) bleiben im Repo.
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/questions/
+.impeccable/build/
+.impeccable/decision-payload.json

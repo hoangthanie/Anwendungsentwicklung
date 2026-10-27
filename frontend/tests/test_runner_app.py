@@ -25,9 +25,11 @@ def test_app_zeigt_beispiel_dashboard(demo_db, monkeypatch):
     app = AppTest.from_file(str(APP), default_timeout=30).run()
     assert not app.exception
     assert not app.error
-    assert [t.value for t in app.title] == ["Vertriebs-Dashboard"]
+    texte = " ".join(m.value for m in app.markdown)
+    assert "Vertriebs-Dashboard" in texte and "Muster GmbH" in texte  # Schriftfeld mit Titel und Kunde
+    assert "nur lesend" in texte and "fb-kennzahl" in texte  # Datenzugriff im Kopf, Kennzahl als Feld
+    assert "--akzent:#1F3864" in texte  # erste Kundenfarbe ist der Akzent
     assert len(app.tabs) == 3  # Dashboard, Über dieses Dashboard, Daten aktualisieren
-    assert len(app.metric) == 1
 
 
 def test_app_meldet_fehlende_konfiguration_verstaendlich(monkeypatch, tmp_path):

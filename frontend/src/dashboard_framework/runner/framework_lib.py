@@ -135,7 +135,7 @@ def validate_against_schema(df: pd.DataFrame, schema: list[SpaltenDef | dict]) -
     return pd.DataFrame(ergebnis, columns=soll)
 
 
-def _bezeichner(name: str) -> str:
+def bezeichner_zitieren(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
 
 
@@ -143,7 +143,7 @@ def _tabellenspalten(verbindung: sqlite3.Connection, tabelle: str) -> list[str]:
     vorhanden = verbindung.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (tabelle,)).fetchone()
     if not vorhanden:
         raise UploadFehler(f"Die Tabelle '{tabelle}' existiert in der Datenbank nicht")
-    return [zeile[1] for zeile in verbindung.execute(f"PRAGMA table_info({_bezeichner(tabelle)})")]
+    return [zeile[1] for zeile in verbindung.execute(f"PRAGMA table_info({bezeichner_zitieren(tabelle)})")]
 
 
 def zaehle_vorhandene_zeilen(df: pd.DataFrame, db_pfad: str | Path, tabelle: str) -> int:
@@ -153,8 +153,8 @@ def zaehle_vorhandene_zeilen(df: pd.DataFrame, db_pfad: str | Path, tabelle: str
         spalten = _tabellenspalten(verbindung, tabelle)
         if not set(df.columns) <= set(spalten):
             return 0
-        auswahl = ", ".join(_bezeichner(c) for c in df.columns)
-        bestehend = pd.read_sql_query(f"SELECT DISTINCT {auswahl} FROM {_bezeichner(tabelle)}", verbindung)
+        auswahl = ", ".join(bezeichner_zitieren(c) for c in df.columns)
+        bestehend = pd.read_sql_query(f"SELECT DISTINCT {auswahl} FROM {bezeichner_zitieren(tabelle)}", verbindung)
     finally:
         verbindung.close()
     if bestehend.empty:
@@ -183,7 +183,7 @@ def uebernehmen(df: pd.DataFrame, db_pfad: str | Path, tabelle: str) -> int:
         if fremd:
             raise UploadFehler("Spalten nicht in der Tabelle vorhanden: " + ", ".join(fremd))
         sql = (
-            f"INSERT INTO {_bezeichner(tabelle)} ({', '.join(_bezeichner(c) for c in df.columns)}) "
+            f"INSERT INTO {bezeichner_zitieren(tabelle)} ({', '.join(bezeichner_zitieren(c) for c in df.columns)}) "
             f"VALUES ({', '.join('?' for _ in df.columns)})"
         )
         zeilen = [tuple(_python_wert(w) for w in zeile) for zeile in df.itertuples(index=False, name=None)]

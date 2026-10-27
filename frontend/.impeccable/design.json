@@ -1,0 +1,314 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-27T12:00:04.198401+00:00",
+  "title": "Design System: Dashboard-Framework Frontend",
+  "extensions": {
+    "colorMeta": {
+      "papier": {
+        "role": "neutral",
+        "displayName": "Zeichenpapier",
+        "canonical": "#F1F3F5",
+        "tonalRamp": [
+          "#22262A",
+          "#35404A",
+          "#4A5968",
+          "#607386",
+          "#8899AA",
+          "#B5BFCA",
+          "#DBE0E6",
+          "#F1F2F4"
+        ]
+      },
+      "blatt": {
+        "role": "neutral",
+        "displayName": "Blatt",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#999999",
+          "#BFBFBF",
+          "#E0E0E0",
+          "#F2F2F2"
+        ]
+      },
+      "tinte": {
+        "role": "neutral",
+        "displayName": "Graphit-Tinte",
+        "canonical": "#1C2227",
+        "tonalRamp": [
+          "#22272A",
+          "#35414A",
+          "#4B5B68",
+          "#607486",
+          "#889BAA",
+          "#B5C0CA",
+          "#DBE1E5",
+          "#F1F2F4"
+        ]
+      },
+      "tinte-2": {
+        "role": "neutral",
+        "displayName": "Zweite Tintenstufe",
+        "canonical": "#4A545D",
+        "tonalRamp": [
+          "#242629",
+          "#384047",
+          "#4F5A63",
+          "#667380",
+          "#8D9AA5",
+          "#B8C0C7",
+          "#DDE1E4",
+          "#F1F2F3"
+        ]
+      },
+      "linie": {
+        "role": "neutral",
+        "displayName": "Blattrand",
+        "canonical": "#AEB7BF",
+        "tonalRamp": [
+          "#242629",
+          "#384047",
+          "#4F5A64",
+          "#657480",
+          "#8D9AA5",
+          "#B8C0C7",
+          "#DDE1E4",
+          "#F1F2F3"
+        ]
+      },
+      "haarlinie": {
+        "role": "neutral",
+        "displayName": "Haarlinie",
+        "canonical": "#DDE2E6",
+        "tonalRamp": [
+          "#23272A",
+          "#364149",
+          "#4C5B67",
+          "#617584",
+          "#899BA9",
+          "#B6C0C9",
+          "#DCE1E5",
+          "#F1F2F3"
+        ]
+      },
+      "linie-stark": {
+        "role": "neutral",
+        "displayName": "Bedienelement-Linie",
+        "canonical": "#7C8791",
+        "tonalRamp": [
+          "#242628",
+          "#3A4045",
+          "#515A61",
+          "#69737D",
+          "#9099A2",
+          "#BAC0C5",
+          "#DEE1E3",
+          "#F2F2F3"
+        ]
+      },
+      "produktfarbe": {
+        "role": "primary",
+        "displayName": "Produktfarbe Bleistiftblau",
+        "canonical": "#23579F",
+        "tonalRamp": [
+          "#182435",
+          "#173968",
+          "#205092",
+          "#2967BC",
+          "#588EDA",
+          "#97B9E8",
+          "#CDDDF4",
+          "#EDF1F7"
+        ]
+      },
+      "gueltig": {
+        "role": "state",
+        "displayName": "Gültig",
+        "canonical": "#1F6B40",
+        "tonalRamp": [
+          "#1A3325",
+          "#1D633B",
+          "#288A53",
+          "#34B26A",
+          "#61D192",
+          "#9CE2BB",
+          "#D0F1DE",
+          "#EEF6F2"
+        ]
+      },
+      "fehler": {
+        "role": "state",
+        "displayName": "Fehler",
+        "canonical": "#A3201A",
+        "tonalRamp": [
+          "#371716",
+          "#6E1612",
+          "#9A1E19",
+          "#C62720",
+          "#E3564F",
+          "#ED9591",
+          "#F7CCCA",
+          "#F8EDED"
+        ]
+      },
+      "hinweis": {
+        "role": "state",
+        "displayName": "Hinweis",
+        "canonical": "#7A4E00",
+        "tonalRamp": [
+          "#3D2D0F",
+          "#805200",
+          "#B27200",
+          "#E69300",
+          "#FFB533",
+          "#FFD180",
+          "#FFE9C2",
+          "#FAF4EB"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "titel": {
+        "displayName": "Titel",
+        "purpose": "Titel im Schriftfeld."
+      },
+      "feldtitel": {
+        "displayName": "Feldtitel",
+        "purpose": "Titelzeile jedes Felds."
+      },
+      "wert": {
+        "displayName": "Wert",
+        "purpose": "Werte im Schriftfeld und in der Fußleiste."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Fließtext, Lesetext höchstens 65 Zeichen breit."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Beschriftung über Werten, nie über Überschriften."
+      },
+      "kennzahl": {
+        "displayName": "Kennzahl",
+        "purpose": "Die eine große Zahl eines Felds."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "zustandswechsel",
+        "value": "150ms ease-out",
+        "purpose": "Hover und Fokus; sonst keine Bewegung."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "schmal",
+        "value": "760px"
+      },
+      {
+        "name": "schriftfeld-umbruch",
+        "value": "900px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Schriftfeld",
+      "kind": "custom",
+      "refersTo": "schriftfeld",
+      "description": "Kopfzeile jeder Oberfläche: Titel mit Logo, danach beschriftete Werte.",
+      "html": "<div class=\"ds-sf\"><div class=\"ds-sf-z\"><span class=\"ds-sf-w ds-sf-titel\">Vertriebs-Dashboard</span></div><div class=\"ds-sf-z\"><span class=\"ds-sf-l\">Kunde</span><span class=\"ds-sf-w\">Muster GmbH</span></div><div class=\"ds-sf-z\"><span class=\"ds-sf-l\">Datenstand</span><span class=\"ds-sf-w\">15.12.2026</span></div><div class=\"ds-sf-z\"><span class=\"ds-sf-l\">Zeilen</span><span class=\"ds-sf-w\">192</span></div></div>",
+      "css": ".ds-sf{display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr;border:1.5px solid #1C2227;background:#fff;width:640px}.ds-sf-z{padding:10px 14px 12px;border-right:1px solid #AEB7BF}.ds-sf-z:last-child{border-right:0}.ds-sf-l{display:block;font:600 12px/1 'Barlow Condensed',sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#4A545D;margin-bottom:7px}.ds-sf-w{display:block;font:600 18px/1.25 Barlow,sans-serif;color:#1C2227}.ds-sf-titel{font:600 26px/1.15 'Barlow Condensed',sans-serif}"
+    },
+    {
+      "name": "Feld",
+      "kind": "card",
+      "refersTo": "feld",
+      "description": "Beschrifteter Bereich mit Feldnummer, Titelzeile und Fußleiste.",
+      "html": "<div class=\"ds-feld\"><div class=\"ds-feld-kopf\"><span class=\"ds-nr\">1</span><span class=\"ds-feldtitel\">Umsatz nach Region</span></div><div class=\"ds-feld-inhalt\">Inhalt des Felds</div><div class=\"ds-fuss\"><div><span class=\"ds-sf-l\">Berechnung</span><span class=\"ds-fuss-w\">Summe von umsatz, gruppiert nach region.</span></div><div><span class=\"ds-sf-l\">Ergebnis</span><span class=\"ds-fuss-w\">4 Zeilen</span></div></div></div>",
+      "css": ".ds-feld{background:#fff;border:1px solid #AEB7BF;border-radius:2px;width:420px}.ds-feld-kopf{display:flex;align-items:center;gap:12px;padding:12px 16px 10px;border-bottom:1px solid #DDE2E6}.ds-nr{font:600 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.06em;background:#1C2227;color:#fff;padding:4px 7px 3px;border-radius:1px}.ds-feldtitel{font:600 21px/1.1 'Barlow Condensed',sans-serif;color:#1C2227}.ds-feld-inhalt{padding:16px;font:16px/1.5 Barlow,sans-serif;color:#1C2227}.ds-fuss{display:flex;border-top:1px solid #DDE2E6}.ds-fuss>div{flex:1;padding:8px 16px 10px;border-right:1px solid #DDE2E6}.ds-fuss>div:last-child{border-right:0}.ds-sf-l{display:block;font:600 12px/1 'Barlow Condensed',sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#4A545D;margin-bottom:7px}.ds-fuss-w{font:500 15px/1.3 Barlow,sans-serif}"
+    },
+    {
+      "name": "Zustandsmarke gültig",
+      "kind": "chip",
+      "refersTo": "marke-gueltig",
+      "description": "Zeigt, dass etwas geprüft und in Ordnung ist; immer mit Text.",
+      "html": "<span class=\"ds-marke ds-marke-gueltig\">gültig</span>",
+      "css": ".ds-marke{display:inline-flex;align-items:center;gap:8px;padding:2px 9px 3px;border:1px solid;border-radius:2px;font:600 14px/1.3 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase}.ds-marke::before{content:'';width:8px;height:8px;background:currentColor}.ds-marke-gueltig{color:#1F6B40;background:#E6F2EB;border-color:#1F6B40}"
+    },
+    {
+      "name": "Zustandsmarke fehlerhaft",
+      "kind": "chip",
+      "refersTo": "marke-fehler",
+      "description": "Zeigt einen Fehler; die Raute unterscheidet sie auch ohne Farbwahrnehmung.",
+      "html": "<span class=\"ds-marke ds-marke-fehler\">fehlerhaft</span>",
+      "css": ".ds-marke{display:inline-flex;align-items:center;gap:8px;padding:2px 9px 3px;border:1px solid;border-radius:2px;font:600 14px/1.3 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase}.ds-marke::before{content:'';width:8px;height:8px;background:currentColor;transform:rotate(45deg)}.ds-marke-fehler{color:#A3201A;background:#FBE9E7;border-color:#A3201A}"
+    },
+    {
+      "name": "Hauptknopf",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Hauptaktion eines Felds, rechts unten, in der Akzentfarbe.",
+      "html": "<button class=\"ds-btn\">Übernehmen</button>",
+      "css": ".ds-btn{background:#23579F;color:#fff;border:1px solid #23579F;border-radius:2px;padding:8px 18px;font:600 15px Barlow,sans-serif;cursor:pointer;transition:filter 150ms}.ds-btn:hover{filter:brightness(.93)}.ds-btn:focus-visible{outline:2px solid #23579F;outline-offset:2px}"
+    },
+    {
+      "name": "Eingabefeld",
+      "kind": "input",
+      "refersTo": "feld",
+      "description": "Weißes Feld mit Rand in der Bedienelement-Linie, Beschriftung darüber.",
+      "html": "<label class=\"ds-in\"><span class=\"ds-in-l\">Tabellenname in der Datenbank</span><input class=\"ds-in-f\" placeholder=\"meine_tabelle\"></label>",
+      "css": ".ds-in{display:block;width:300px}.ds-in-l{display:block;font:600 15px/1.3 Barlow,sans-serif;color:#1C2227;margin-bottom:6px}.ds-in-f{width:100%;box-sizing:border-box;background:#fff;border:1px solid #7C8791;border-radius:2px;padding:8px 10px;font:16px Barlow,sans-serif;color:#1C2227}.ds-in-f:focus{outline:none;border-color:#23579F;box-shadow:0 0 0 1px #23579F}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Das geprüfte Formblatt",
+    "overview": "Jede Oberfläche ist ein Blatt, das jemand geprüft hat: oben ein Schriftfeld, darunter beschriftete, nummerierte Felder in Haarlinien. Ruhig und genau, ohne Papier nachzuahmen: keine Texturen, Schatten oder Verläufe. Die Kundenfarbe ist Gast und erscheint nur im aktiven Tab, in der Hauptaktion und in der Datenebene.",
+    "keyCharacteristics": [
+      "Schriftfeld als Kopf, Felder mit Nummer und Haarlinien",
+      "Barlow plus Barlow Condensed",
+      "Fester heller Grund: Papier mit weißen Blättern",
+      "Zustände mit Form und Text",
+      "Kundenfarbe reserviert"
+    ],
+    "rules": [
+      {
+        "name": "The Gast-Farbe Rule",
+        "body": "Die Kundenfarbe taucht nur im aktiven Tab, in der Hauptaktion und in der Datenebene auf. Nie als Fläche der Oberfläche.",
+        "section": "colors"
+      },
+      {
+        "name": "The Form-und-Text Rule",
+        "body": "Jeder Zustand hat Form und Text. Farbe allein trägt nie eine Aussage.",
+        "section": "colors"
+      },
+      {
+        "name": "The Eine-Skala Rule",
+        "body": "Hierarchie entsteht aus Größe und Gewicht innerhalb einer Familie, nicht aus zusätzlichen Schriften.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flach-Immer Rule",
+        "body": "Keine Schatten, keine Verläufe, kein Glas.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do jede neue Oberfläche mit einem Schriftfeld beginnen und in nummerierte Felder gliedern, wenn die Reihenfolge oder ein Verweis Information trägt.",
+      "Do Meldungen am betroffenen Feld und gesammelt zeigen, in einfachen Wörtern.",
+      "Do Zahlen deutsch schreiben (103,2; 300.000) und tabellarische Ziffern nutzen.",
+      "Do Kontrast messen: Text mindestens 4,5:1, Ränder von Bedienelementen mindestens 3:1."
+    ],
+    "donts": [
+      "Don't Streamlits Grau-mit-Farbakzent als Gestaltung gelten lassen.",
+      "Don't farbige Seitenstreifen an Meldungen, Schatten, Verläufe oder Piktogramm-Zeichen als Icons verwenden.",
+      "Don't eine Beschriftung über eine Überschrift setzen.",
+      "Don't zwei Datenfarben für dieselbe Aussage verwenden.",
+      "Don't fremde Texte ungeprüft in HTML oder CSS einsetzen."
+    ]
+  }
+}

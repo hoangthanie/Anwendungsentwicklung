@@ -37,6 +37,7 @@ class Chart(BaseModel):
     farbe: str | None = None  # None = erste Firmenfarbe
     sortierung: Sortierung = "keine"
     breite: Breite = "halb"
+    beschreibung: str | None = Field(default=None, max_length=1000)  # Berechnung in Worten (aus der KPI); der Runner zeigt sie in der Fußleiste
 
     @field_validator("farbe")
     @classmethod

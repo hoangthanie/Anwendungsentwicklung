@@ -110,19 +110,3 @@ def normalisiere_farben(farben: list[str]) -> list[str]:
     if falsch:
         raise BrandingFehler(f"Ungültige Farbcodes: {', '.join(falsch)} (erwartet #RRGGBB, z. B. #1F3864)")
     return [f.upper() for f in eingaben]
-
-
-def theme_css(farben: list[str]) -> str:
-    """CSS für die Akzentfarbe (erste Firmenfarbe): aktiver Tab und Haupt-Button.
-
-    Der Code wird als Text in HTML eingesetzt. Darum wird er hier nochmals streng geprüft, damit über die Konfiguration kein fremdes CSS/HTML eingeschleust werden kann.
-    """
-    if not farben or not ist_farbcode(farben[0]):
-        return ""
-    f = farben[0]
-    return (
-        # Streamlit ändert den Aufbau seiner Elemente zwischen Versionen; deshalb je Version ein Selektor (1.66: react-aria, älter: baseweb).
-        f'.react-aria-SelectionIndicator, [data-baseweb="tab-highlight"] {{ background-color: {f} !important; }}'
-        f'[role="tab"][aria-selected="true"], [data-baseweb="tab"][aria-selected="true"] {{ color: {f} !important; }}'
-        f'button[kind="primary"], button[data-testid="stBaseButton-primary"] {{ background-color: {f} !important; border-color: {f} !important; }}'
-    )

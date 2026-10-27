@@ -2,11 +2,59 @@
 # Streamlit erlaubt standardmäßig 200 MB pro Upload. Unser Limit ist 5 MB (framework_lib.MAX_UPLOAD_BYTES);
 # so lehnt schon der Server zu große Dateien ab, bevor sie in den Arbeitsspeicher gelesen werden. Wert in MB.
 maxUploadSize = 5
+# Schriften liegen im Ordner "static" NEBEN dem jeweiligen Startskript (runner/static, eingabe/static) und werden unter /app/static/ ausgeliefert.
+enableStaticServing = true
 
 [browser]
 gatherUsageStats = false
 
+[client]
+# "minimal" blendet den Deploy-Knopf aus; für Fachanwender gibt es dort nichts zu tun.
+toolbarMode = "minimal"
+
 [theme]
-# Firmenfarben sind für helle Hintergründe gestaltet (z. B. dunkles Marineblau). Auf einem dunklen Theme wären sie schlecht lesbar,
-# deshalb ist das helle Theme fest eingestellt und folgt nicht der Betriebssystem-Einstellung des Betrachters.
+# Gestaltungssystem "Formblatt" (siehe DESIGN.md und docs/08-gestaltung.md).
+# Firmenfarben sind für helle Hintergründe gestaltet; das helle Theme ist deshalb fest eingestellt und folgt nicht der Einstellung des Betrachters.
 base = "light"
+primaryColor = "#23579F"
+backgroundColor = "#F1F3F5"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1C2227"
+borderColor = "#7C8791"
+showWidgetBorder = true
+baseRadius = "2px"
+font = "Barlow"
+headingFont = "Barlow Condensed"
+# Inline-Code (Spaltennamen in Backticks) in Tinte auf hellem Grund statt Streamlits farbigem Standard
+codeTextColor = "#1C2227"
+codeBackgroundColor = "#E8ECEF"
+
+[[theme.fontFaces]]
+family = "Barlow"
+url = "app/static/Barlow-400.woff2"
+weight = 400
+
+[[theme.fontFaces]]
+family = "Barlow"
+url = "app/static/Barlow-500.woff2"
+weight = 500
+
+[[theme.fontFaces]]
+family = "Barlow"
+url = "app/static/Barlow-600.woff2"
+weight = 600
+
+[[theme.fontFaces]]
+family = "Barlow"
+url = "app/static/Barlow-700.woff2"
+weight = 700
+
+[[theme.fontFaces]]
+family = "Barlow Condensed"
+url = "app/static/BarlowCondensed-500.woff2"
+weight = 500
+
+[[theme.fontFaces]]
+family = "Barlow Condensed"
+url = "app/static/BarlowCondensed-600.woff2"
+weight = 600
