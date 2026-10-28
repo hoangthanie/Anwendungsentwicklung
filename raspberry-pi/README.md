@@ -12,7 +12,7 @@ Pi 3 (905 MiB RAM), Raspberry Pi OS Lite 64-bit auf Debian 13 "trixie", Docker 2
 - **Speicher:** `free -h` zeigt 376 MiB belegt, 528 MiB verfuegbar, Swap 904 MiB (kaum genutzt). Je Streamlit-Prozess etwa 170-180 MB (`ps`), zusammen rund 350 MB.
 - **Speichergrenze:** Docker meldet "kernel does not support memory limit"; `docker stats` zeigt deshalb `0B / 0B`. Abhilfe: in `/boot/firmware/cmdline.txt` am Zeilenende `cgroup_enable=memory cgroup_memory=1` anhaengen und neu starten. Noch nicht eingebaut ins Skript.
 - **Ladezeit im Browser (Erstaufruf):** Dashboard ca. 6-7 s, Eingabeformular ca. 5 s. Fuer den Projektzweck ausreichend, keine Optimierung noetig. Moegliche spaetere Stellschraube: `--server.fileWatcherType=none` (ungemessen).
-- Noch offen: Speichern eines Artefakts ueber das Formular (`/srv/dashboards/artefakte`).
+- **Artefakt speichern:** Das Formular auf dem Pi hat ein Artefakt angelegt (`/srv/dashboards/artefakte/tickets`). Damit ist der Weg Formular -> Ordner auf dem Pi bestaetigt.
 
 ## Zielbild
 Das **gesamte Frontend laeuft auf dem Pi**: Eingabeformular (Port 8502) und Dashboard-Runner (Port 8501). Beide sind von jedem Rechner im Netz im Browser erreichbar (`http://<pi>:8501` bzw. `:8502`). Nur das Sprachmodell (Ollama/Qwen3) laeuft nicht auf dem Pi.
