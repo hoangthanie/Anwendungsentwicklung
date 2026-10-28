@@ -5,6 +5,14 @@
 ## Hardware: Raspberry Pi 3 (1 GB RAM)
 Das Zielgeraet ist ein Pi 3 (Modell B/B+, 1 GB). Das reicht fuer Runner und Eingabeformular, ist aber eng: je Container 300 MB Grenze, dazu 1 GB Auslagerungsspeicher (setzt `setup-pi.sh`), der Erst-Build dauert 15-30 Minuten, und die Seiten laden langsamer als auf einem Pi 4. Ein Pi 3A+ (512 MB) reicht nicht. Pruefen mit `free -h` (Zeile Mem: ca. 900 MB). Fuer das Dauerbetrieb-Ziel ist eine hochwertige SD-Karte wichtig (Swap beansprucht sie).
 
+## Erster Test auf dem echten Pi (2026-10-28)
+Pi 3 (905 MiB RAM), Raspberry Pi OS Lite 64-bit auf Debian 13 "trixie", Docker 29.
+- `setup-pi.sh` lief durch (erster Lauf scheiterte an fehlendem Pillow fuer die Demo-Daten, danach behoben). **Der Erst-Build dauerte etwa 19 Minuten** (pip install ca. 7 Minuten, Image-Export ca. 10 Minuten).
+- Beide Container starten, Adressen `:8501` und `:8502` werden ausgegeben.
+- **Speicher:** `free -h` zeigt 376 MiB belegt, 528 MiB verfuegbar, Swap 904 MiB (kaum genutzt). Je Streamlit-Prozess etwa 170-180 MB (`ps`), zusammen rund 350 MB.
+- **Speichergrenze:** Docker meldet "kernel does not support memory limit"; `docker stats` zeigt deshalb `0B / 0B`. Abhilfe: in `/boot/firmware/cmdline.txt` am Zeilenende `cgroup_enable=memory cgroup_memory=1` anhaengen und neu starten. Noch nicht eingebaut ins Skript.
+- Noch offen: Antwortzeit im Browser, Speichern eines Artefakts ueber das Formular (`/srv/dashboards/artefakte`).
+
 ## Zielbild
 Das **gesamte Frontend laeuft auf dem Pi**: Eingabeformular (Port 8502) und Dashboard-Runner (Port 8501). Beide sind von jedem Rechner im Netz im Browser erreichbar (`http://<pi>:8501` bzw. `:8502`). Nur das Sprachmodell (Ollama/Qwen3) laeuft nicht auf dem Pi.
 
