@@ -14,9 +14,9 @@ ARTEFAKT_DIR="/srv/dashboards/artefakte"
 
 [ "$(id -u)" -eq 0 ] || { echo "Bitte mit sudo ausfuehren."; exit 1; }
 
-echo "==> 1/5 Pakete (git, python3 fuer die Demo-Daten)"
+echo "==> 1/5 Pakete (git, python3 und Pillow fuer die Demo-Daten)"
 apt-get update -qq
-apt-get install -y -qq git python3 curl ca-certificates
+apt-get install -y -qq git python3 python3-pil curl ca-certificates
 
 echo "==> Auslagerungsspeicher auf 1 GB (Pi mit 1 GB RAM: Docker-Build und zwei Apps brauchen Reserve)"
 if [ -f /etc/dphys-swapfile ] && ! grep -q '^CONF_SWAPSIZE=1024' /etc/dphys-swapfile; then
