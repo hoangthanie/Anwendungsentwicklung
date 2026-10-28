@@ -14,6 +14,11 @@ Pi 3 (905 MiB RAM), Raspberry Pi OS Lite 64-bit auf Debian 13 "trixie", Docker 2
 - **Ladezeit im Browser (Erstaufruf):** Dashboard ca. 6-7 s, Eingabeformular ca. 5 s. Fuer den Projektzweck ausreichend, keine Optimierung noetig. Moegliche spaetere Stellschraube: `--server.fileWatcherType=none` (ungemessen).
 - **Artefakt speichern:** Das Formular auf dem Pi hat ein Artefakt angelegt (`/srv/dashboards/artefakte/tickets`). Damit ist der Weg Formular -> Ordner auf dem Pi bestaetigt.
 
+## Netzwerk (Empfehlung fuer den Dauerbetrieb)
+- **Per LAN-Kabel betreiben und das WLAN abschalten** (`sudo nmcli radio wifi off`, bleibt nach Neustart aus). Mit beiden Verbindungen hat der Pi zwei Adressen; mit Kabel allein ist es eine, und die Verbindung ist stabiler. Vorher per SSH ueber die Kabeladresse anmelden, sonst bricht die Verbindung ab (Adressen zeigt `ip -4 -br addr`).
+- **Im Router die Adresse fuer `eth0` fest reservieren** (DHCP-Reservierung ueber die MAC-Adresse), damit die Browser-Adresse gleich bleibt.
+- **Tailscale** ist auf dem Pi installiert. Die Apps hoeren auf allen Schnittstellen und sind deshalb auch ueber die Tailscale-Adresse (Port 8501/8502) erreichbar. Ein Login gibt es nicht; die Freigabe im Tailscale-Netz klein halten. Nur ueber Tailscale erreichbar waere moeglich, indem die Ports in `docker-compose.yml` an die Tailscale-Adresse gebunden werden.
+
 ## Zielbild
 Das **gesamte Frontend laeuft auf dem Pi**: Eingabeformular (Port 8502) und Dashboard-Runner (Port 8501). Beide sind von jedem Rechner im Netz im Browser erreichbar (`http://<pi>:8501` bzw. `:8502`). Nur das Sprachmodell (Ollama/Qwen3) laeuft nicht auf dem Pi.
 
