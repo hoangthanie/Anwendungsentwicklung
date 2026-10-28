@@ -18,6 +18,13 @@ echo "==> 1/5 Pakete (git, python3 fuer die Demo-Daten)"
 apt-get update -qq
 apt-get install -y -qq git python3 curl ca-certificates
 
+echo "==> Auslagerungsspeicher auf 1 GB (Pi mit 1 GB RAM: Docker-Build und zwei Apps brauchen Reserve)"
+if [ -f /etc/dphys-swapfile ] && ! grep -q '^CONF_SWAPSIZE=1024' /etc/dphys-swapfile; then
+  sed -i 's/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=1024/' /etc/dphys-swapfile
+  dphys-swapfile swapoff || true
+  dphys-swapfile setup && dphys-swapfile swapon
+fi
+
 echo "==> 2/5 Docker"
 if ! command -v docker >/dev/null; then
   curl -fsSL https://get.docker.com | sh

@@ -22,7 +22,7 @@ services:
       - "8501:8501"          # spaeter mit Tailscale: nur an das Tailscale-Interface binden
     volumes:
       - /srv/dashboards/aktuell:/daten   # dashboard.json, daten.db, logo.png (Upload schreibt hier)
-    mem_limit: 450m          # Pi 4 mit 2 GB: zwei Streamlit-Prozesse plus System muessen passen
+    mem_limit: 300m          # Pi 3 mit 1 GB: zwei Streamlit-Prozesse plus System plus Docker muessen passen
 
   eingabe:
     <<: *gemeinsam
@@ -34,7 +34,7 @@ services:
       ARTEFAKT_ORDNER: /artefakte
     volumes:
       - /srv/dashboards/artefakte:/artefakte   # hier legt das Formular artefakte/<name>/artefakt.yaml + Logo ab
-    mem_limit: 450m
+    mem_limit: 300m
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8502/_stcore/health', timeout=4)"]
       interval: 30s
