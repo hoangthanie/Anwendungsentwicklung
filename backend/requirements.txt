@@ -1,9 +1,29 @@
-# Abhängigkeiten für Datenmodelle und Pipeline
+# --- Grundlagen für Datenmodelle und Pipeline ---
+# Datenmodelle und Validierung (Artefakt, Schema-JSON, Ausgaben der Schritte)
 pydantic>=2.8
+# artefakt.yaml lesen
 pyyaml>=6.0
+# Schritt 1: CSV einlesen, Spalten und Datentypen auslesen
 pandas>=2.2
-# Gemeinsames Paket dashboard_framework (Datenmodelle, Schritt 3) aus ../frontend
+
+# --- Agent-Harness ---
+# Offizielle Python-Bibliothek für Ollama: Anfragen an Qwen3, JSON-Schema-Erzwingung (format=...),
+# liefert Token-Zahlen und Laufzeiten je Aufruf für runs/metrics.jsonl
+ollama>=0.4
+# Liest die lokale .env (OLLAMA_URL, MODELL) beim Start ein
+python-dotenv>=1.0
+
+# --- Prüfschichten ---
+# Schritt 2: generiertes SQL zerlegen und prüfen (verwendete Tabellen/Spalten, nur SELECT)
+sqlglot>=25.0
+
+# --- Gemeinsames Paket aus ../frontend (Datenmodelle, Schritt 3) ---
 -e ../frontend
-# Backend selbst
+
+# --- Backend selbst ---
 -e .
+
+# --- Tests und Entwicklung ---
 pytest>=8.0
+# Code-Stil-Prüfung wie in der CI (ruff check src tests)
+ruff>=0.6
