@@ -1,0 +1,9 @@
+# Abhängigkeiten für Datenmodelle und Pipeline
+pydantic>=2.8
+pyyaml>=6.0
+pandas>=2.2
+# Gemeinsames Paket dashboard_framework (Datenmodelle, Schritt 3) aus ../frontend
+-e ../frontend
+# Backend selbst
+-e .
+pytest>=8.0
