@@ -2,7 +2,11 @@ import sqlite3
 
 import pytest
 
-from dashboard_framework.runner.sicherheit import UnsicheresSql, pruefe_nur_lesend, verbinde_nur_lesend
+from dashboard_framework.runner.sicherheit import (
+    UnsicheresSql,
+    pruefe_nur_lesend,
+    verbinde_nur_lesend,
+)
 
 
 @pytest.mark.parametrize("sql", [

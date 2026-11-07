@@ -2,7 +2,10 @@
 import pandas as pd
 import pytest
 
-from dashboard_framework.eingabe.formular import artefakt_aus_formular, spalten_vorschlag
+from dashboard_framework.eingabe.formular import (
+    artefakt_aus_formular,
+    spalten_vorschlag,
+)
 from dashboard_framework.models.artefakt import Artefakt, ArtefaktFehler
 
 FORMULAR = {

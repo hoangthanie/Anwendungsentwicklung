@@ -7,7 +7,15 @@ import pytest
 
 from dashboard_framework.models.spalten import SpaltenDef
 from dashboard_framework.runner.daten import Kopfdaten, formatiere_datum, lade_kopfdaten
-from dashboard_framework.ui.komponenten import esc, feldkopf, fussleiste, kennzahl, marke, schriftfeld, zahl
+from dashboard_framework.ui.komponenten import (
+    esc,
+    feldkopf,
+    fussleiste,
+    kennzahl,
+    marke,
+    schriftfeld,
+    zahl,
+)
 from dashboard_framework.ui.theme import (
     BLATT,
     LINIE_STARK,

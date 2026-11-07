@@ -73,7 +73,7 @@ def test_leere_datei_ohne_zeilen_wird_abgelehnt():
 
 
 def test_csv_mit_semikolon_und_bom():
-    inhalt = "﻿datum;wert\n2026-01-05;1,5\n".encode("utf-8")
+    inhalt = "﻿datum;wert\n2026-01-05;1,5\n".encode()
     df = lese_csv(inhalt)
     assert list(df.columns) == ["datum", "wert"]
     assert validate_against_schema(df, SCHEMA)["wert"].tolist() == [1.5]
