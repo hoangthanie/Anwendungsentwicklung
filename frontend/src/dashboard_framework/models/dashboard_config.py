@@ -72,7 +72,7 @@ class DashboardConfig(BaseModel):
     doku: str | None = None  # Text für den Tab "Über dieses Dashboard"
 
     @model_validator(mode="after")
-    def _titel_eindeutig(self) -> "DashboardConfig":
+    def _titel_eindeutig(self) -> DashboardConfig:
         titel = [c.titel for c in self.charts]
         doppelt = sorted({t for t in titel if titel.count(t) > 1})
         if doppelt:
@@ -80,7 +80,7 @@ class DashboardConfig(BaseModel):
         return self
 
     @classmethod
-    def laden(cls, pfad: str | Path) -> "DashboardConfig":
+    def laden(cls, pfad: str | Path) -> DashboardConfig:
         return cls.model_validate(json.loads(Path(pfad).read_text(encoding="utf-8")))
 
     def speichern(self, pfad: str | Path) -> None:

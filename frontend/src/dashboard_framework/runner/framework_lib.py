@@ -7,7 +7,6 @@ Fehlerhafte Daten erreichen die Datenbank nie.
 from __future__ import annotations
 
 import io
-import re
 import sqlite3
 from pathlib import Path
 
@@ -44,7 +43,7 @@ def lese_csv(inhalt: bytes) -> pd.DataFrame:
     try:
         # sep=None: Trennzeichen (Komma oder Semikolon, z. B. aus deutschem Excel) wird automatisch erkannt
         df = pd.read_csv(io.StringIO(text), sep=None, engine="python", dtype=str, keep_default_na=False)
-    except Exception:
+    except Exception:  # noqa: BLE001 - pandas wirft je nach Defekt sehr verschiedene Typen; fuer den Anwender zaehlt nur "kein gueltiges CSV"
         raise UploadFehler("Die Datei konnte nicht als CSV gelesen werden") from None
     df.columns = [str(spalte).strip() for spalte in df.columns]
     return df

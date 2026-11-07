@@ -21,13 +21,17 @@ from dashboard_framework.eingabe.formular import (
     artefakt_aus_formular,
     fuege_spalte_ein,
     meldungen_zu_feld,
-    waehle_ziel_kpi,
-    speichere_artefakt_ordner,
     spalten_vorschlag,
+    speichere_artefakt_ordner,
     vorhandene_artefakte,
+    waehle_ziel_kpi,
     zeilen_aus_tabelle,
 )
-from dashboard_framework.models.artefakt import Artefakt, ArtefaktFehler, backticks_zu_anfuehrungszeichen
+from dashboard_framework.models.artefakt import (
+    Artefakt,
+    ArtefaktFehler,
+    backticks_zu_anfuehrungszeichen,
+)
 from dashboard_framework.models.spalten import SpaltenTyp
 from dashboard_framework.runner.branding import MAX_LOGO_BYTES, BrandingFehler
 from dashboard_framework.runner.framework_lib import UploadFehler, lese_csv

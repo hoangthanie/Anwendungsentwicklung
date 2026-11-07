@@ -5,7 +5,11 @@ import pytest
 from PIL import Image
 
 from dashboard_framework.models.spalten import aehnliche_spalte
-from dashboard_framework.runner.branding import MAX_LOGO_BYTES, BrandingFehler, pruefe_logo
+from dashboard_framework.runner.branding import (
+    MAX_LOGO_BYTES,
+    BrandingFehler,
+    pruefe_logo,
+)
 
 
 def _bild_bytes(pfad, groesse=(1, 1), format="PNG", rauschen=False):

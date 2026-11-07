@@ -16,9 +16,19 @@ from pathlib import Path
 import streamlit as st
 
 from dashboard_framework.models.dashboard_config import Chart, DashboardConfig
-from dashboard_framework.runner.branding import BrandingFehler, lade_logo, pruefe_logo_bytes
+from dashboard_framework.runner.branding import (
+    BrandingFehler,
+    lade_logo,
+    pruefe_logo_bytes,
+)
 from dashboard_framework.runner.charts import erstelle_figur, kennzahl_wert
-from dashboard_framework.runner.daten import Kopfdaten, formatiere_vorschau, lade_chart_daten, lade_kopfdaten, layout_zeilen
+from dashboard_framework.runner.daten import (
+    Kopfdaten,
+    formatiere_vorschau,
+    lade_chart_daten,
+    lade_kopfdaten,
+    layout_zeilen,
+)
 from dashboard_framework.runner.framework_lib import (
     UploadFehler,
     lese_csv,
@@ -27,8 +37,16 @@ from dashboard_framework.runner.framework_lib import (
     zaehle_vorhandene_zeilen,
 )
 from dashboard_framework.runner.sicherheit import UnsicheresSql
-from dashboard_framework.ui.komponenten import esc, feldkopf, fussleiste, kennzahl, marke, schriftfeld, zahl
-from dashboard_framework.ui.theme import akzent_pruefen, wende_an
+from dashboard_framework.ui.komponenten import (
+    esc,
+    feldkopf,
+    fussleiste,
+    kennzahl,
+    marke,
+    schriftfeld,
+    zahl,
+)
+from dashboard_framework.ui.theme import wende_an
 
 STANDARD_CONFIG = Path(__file__).resolve().parents[3] / "examples" / "sales" / "dashboard.json"
 DARSTELLUNG = {"balken": "Balken", "linie": "Linie", "tabelle": "Tabelle", "kennzahl": "Kennzahl"}
@@ -167,7 +185,7 @@ def main() -> None:
         wende_an()
         st.error(f"Die Konfiguration enthält unerlaubtes SQL und wurde nicht ausgeführt: {fehler}")
         return
-    except Exception as fehler:  # ungültige Konfiguration, kaputte DB: verständliche Meldung statt Stacktrace
+    except Exception as fehler:  # noqa: BLE001 - ungültige Konfiguration, kaputte DB: verständliche Meldung statt Stacktrace
         wende_an()
         st.error(f"Das Dashboard kann nicht angezeigt werden: {fehler}")
         return
@@ -185,9 +203,8 @@ def main() -> None:
                 nummer += 1
                 with spalte:
                     _feld(nummer, chart, daten[chart.titel], farben)
-    with tabs[1]:
-        with st.container(key="lesetext"):
-            st.markdown(config.doku or "Für dieses Dashboard liegt noch keine Dokumentation vor.")
+    with tabs[1], st.container(key="lesetext"):
+        st.markdown(config.doku or "Für dieses Dashboard liegt noch keine Dokumentation vor.")
     if config.spalten:
         with tabs[2]:
             _upload_bereich(config, db_datei)

@@ -15,7 +15,13 @@ from typing import Protocol, get_args
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from dashboard_framework.models.artefakt import Artefakt
-from dashboard_framework.models.dashboard_config import Breite, Chart, ChartTyp, DashboardConfig, Sortierung
+from dashboard_framework.models.dashboard_config import (
+    Breite,
+    Chart,
+    ChartTyp,
+    DashboardConfig,
+    Sortierung,
+)
 from dashboard_framework.runner.sicherheit import UnsicheresSql, pruefe_nur_lesend
 
 SCHRITT = "dashboard"

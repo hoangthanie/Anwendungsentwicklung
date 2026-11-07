@@ -44,7 +44,7 @@ def pruefe_logo_bytes(inhalt: bytes) -> str:
             bild.verify()  # prüft die Struktur der Datei, ohne alle Pixel zu dekodieren
     except BrandingFehler:
         raise
-    except Exception:
+    except Exception:  # noqa: BLE001 - bewusst breit, siehe Kommentar
         # Pillow wirft je nach Defekt sehr verschiedene Typen (UnidentifiedImageError, OSError, SyntaxError, ...).
         # Für den Anwender zählt nur: keine gültige Bilddatei.
         raise BrandingFehler("Die Datei ist kein gültiges PNG- oder JPEG-Bild") from None

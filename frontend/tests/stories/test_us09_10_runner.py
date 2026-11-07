@@ -5,9 +5,17 @@ import pandas as pd
 import pytest
 
 from dashboard_framework.models.dashboard_config import Chart, DashboardConfig
-from dashboard_framework.runner.charts import erstelle_figur, kennzahl_wert, waehle_farbe
+from dashboard_framework.runner.charts import (
+    erstelle_figur,
+    kennzahl_wert,
+    waehle_farbe,
+)
 from dashboard_framework.runner.daten import achsen, lade_chart_daten, layout_zeilen
-from dashboard_framework.runner.framework_lib import UploadFehler, uebernehmen, validate_against_schema
+from dashboard_framework.runner.framework_lib import (
+    UploadFehler,
+    uebernehmen,
+    validate_against_schema,
+)
 from dashboard_framework.runner.sicherheit import UnsicheresSql
 
 
