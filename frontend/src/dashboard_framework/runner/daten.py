@@ -2,20 +2,7 @@
 
 Reine Funktionen ohne Streamlit, damit sie ohne Browser testbar sind.
 """
-from __future__ import annotations
-
-from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
-
-import pandas as pd
-
-from dashboard_framework.models.dashboard_config import Chart, DashboardConfig
-from dashboard_framework.runner.framework_lib import bezeichner_zitieren
-from dashboard_framework.runner.sicherheit import pruefe_nur_lesend, verbinde_nur_lesend
-
-
-def achsen(chart: Chart, df: pd.DataFrame) -> tuple[str | None, str | None]:
+from __future__ import annotationsfrom dataclasses import dataclassfrom datetime import datetimefrom pathlib import Pathimport pandas as pdfrom dashboard_framework.models.dashboard_config import Chart, DashboardConfigfrom dashboard_framework.runner.framework_lib import bezeichner_zitierenfrom dashboard_framework.runner.sicherheit import pruefe_nur_lesend, verbinde_nur_lesenddef achsen(chart: Chart, df: pd.DataFrame) -> tuple[str | None, str | None]:
     """Bestimmt X- und Y-Spalte: explizit aus dem Chart, sonst erste bzw. zweite Ergebnisspalte."""
     spalten = list(df.columns)
     x = chart.x if chart.x else (spalten[0] if spalten else None)

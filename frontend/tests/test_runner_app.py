@@ -1,5 +1,4 @@
 """Rauchtest der Streamlit-Oberfläche ohne Browser (streamlit.testing): die App läuft mit dem Beispiel durch."""
-import os
 import subprocess
 import sys
 from pathlib import Path

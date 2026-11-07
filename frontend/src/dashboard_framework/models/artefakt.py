@@ -9,10 +9,21 @@ import re
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from dashboard_framework.models.dashboard_config import Branding
-from dashboard_framework.models.spalten import SpaltenDef, aehnliche_spalte, ist_bezeichner
+from dashboard_framework.models.spalten import (
+    SpaltenDef,
+    aehnliche_spalte,
+    ist_bezeichner,
+)
 
 MAX_YAML_BYTES = 1024 * 1024
 MAX_KPIS = 12  # mehr KPIs sprengen das Kontextfenster des lokalen Modells und die Übersicht des Dashboards
@@ -96,7 +107,7 @@ class Artefakt(BaseModel):
         return wert
 
     @model_validator(mode="after")
-    def _zusammenhaenge_pruefen(self) -> "Artefakt":
+    def _zusammenhaenge_pruefen(self) -> Artefakt:
         meldungen: list[str] = []
 
         namen = [s.name for s in self.spalten]
@@ -151,7 +162,7 @@ class Artefakt(BaseModel):
     # --- Laden und Speichern -------------------------------------------------------------------------
 
     @classmethod
-    def aus_dict(cls, daten: object) -> "Artefakt":
+    def aus_dict(cls, daten: object) -> Artefakt:
         if not isinstance(daten, dict):
             raise ArtefaktFehler("Das Artefakt muss aus Feldern bestehen (name, titel, ziel, ...)")
         try:
@@ -160,7 +171,7 @@ class Artefakt(BaseModel):
             raise ArtefaktFehler(_uebersetze(fehler)) from None
 
     @classmethod
-    def aus_yaml(cls, pfad: str | Path) -> "Artefakt":
+    def aus_yaml(cls, pfad: str | Path) -> Artefakt:
         datei = Path(pfad)
         try:
             if datei.stat().st_size > MAX_YAML_BYTES:

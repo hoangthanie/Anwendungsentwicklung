@@ -110,7 +110,7 @@ def test_doppelte_kpi_und_fehlende_kpi_werden_gemeldet(artefakt, sql_je_kpi):
 
 
 def test_farbe_ausserhalb_der_palette_wird_abgelehnt(artefakt, sql_je_kpi):
-    llm = FakeLLM([wahl(artefakt, **{"Umsatzverlauf": {"farbe": "#FF0000"}}), wahl(artefakt)])
+    llm = FakeLLM([wahl(artefakt, Umsatzverlauf={"farbe": "#FF0000"}), wahl(artefakt)])
     erzeuge_config(artefakt, sql_je_kpi, llm)
     assert "nicht erlaubt" in llm.aufrufe[1]["prompt"]
 

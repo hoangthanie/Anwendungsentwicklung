@@ -5,7 +5,11 @@ import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from dashboard_framework.eingabe.formular import speichere_artefakt_ordner, vorhandene_artefakte, zeilen_aus_tabelle
+from dashboard_framework.eingabe.formular import (
+    speichere_artefakt_ordner,
+    vorhandene_artefakte,
+    zeilen_aus_tabelle,
+)
 from dashboard_framework.models.artefakt import Artefakt, ArtefaktFehler
 
 APP = Path(__file__).resolve().parents[1] / "src" / "dashboard_framework" / "eingabe" / "app.py"
@@ -115,7 +119,10 @@ def test_eingabe_app_gueltiges_artefakt_mit_leeren_beschreibungen_zeigt_hinweis_
 
 
 def test_ziel_kpi_ist_die_zuletzt_geaenderte():
-    from dashboard_framework.eingabe.formular import finde_geaenderte_kpi, waehle_ziel_kpi
+    from dashboard_framework.eingabe.formular import (
+        finde_geaenderte_kpi,
+        waehle_ziel_kpi,
+    )
 
     ids = [0, 1, 2]
     vorher = {0: "Anzahl", 1: "Summe", 2: ""}
