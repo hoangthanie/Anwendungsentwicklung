@@ -1,7 +1,7 @@
 # Qualitäts-Gate für jeden Push und Pull Request – PSP AP 4.3 (Stephanie Jayhooni)
 # Abnahmekriterium AP 4.3: „Pipeline läuft bei jedem PR grün/rot“.
 # Läuft auf GitHub-Servern, ohne Sprachmodell, nur mit synthetischen Testdaten.
-# Weitere Teile (backend/, docs/) werden ergänzt, sobald die Ordner existieren.
+# Frontend (Dominik) und Backend (David) werden getrennt geprüft.
 name: ci
 
 on:
@@ -35,6 +35,28 @@ jobs:
         run: pip install -r requirements.txt
       - name: Tests ausführen (pytest)
         run: pytest -q
+
+  backend-tests:
+    name: Backend – Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            frontend/requirements.txt
+      - name: Abhängigkeiten installieren (inkl. gemeinsames Paket aus frontend/)
+        run: pip install -r requirements.txt
+      - name: Tests ausführen (pytest)
+        run: pytest -q
+      - name: Code-Stil (ruff)
+        run: ruff check src tests --output-format=github
 
   frontend-lint:
     name: Frontend – Code-Stil (Hinweis)
