@@ -9,5 +9,7 @@ Bei einer Cloud-API würden zumindest Schema-Metadaten das eigene System verlass
 ## Entscheidung
 Inferenz lokal mit Qwen3 über Ollama auf dem Entwicklungsrechner (RTX 4070 Super, aktuell qwen3:14b).
 
+_Nachtrag 08.11.2026: Das konkrete Modell legt [ADR 0006](0006-modellwahl.md) fest (qwen3:8b ohne Denkmodus)._
+
 ## Konsequenzen
 Datenschutz-Spannungsfeld aufgelöst; dafür begrenzte Modellqualität und VRAM (Risiken R01–R03). Self-hosted CI-Runner nötig.
