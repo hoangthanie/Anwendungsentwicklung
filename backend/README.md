@@ -16,7 +16,7 @@ Schritt 3 liegt nicht hier, sondern bei Dominik unter `frontend/src/dashboard_fr
 | Pfad | Inhalt | PSP |
 |---|---|---|
 | `src/pipeline/harness/llm.py` | Zugriff auf das Sprachmodell (Ollama), Format-Erzwingung, Wiederholung bei Fehlern, Run-Protokoll | 5.2 |
-| `src/pipeline/schritte/schritt1_datenmodell.py` | Datenstruktur aus der CSV lesen und gegen das Artefakt prüfen | 5.3 |
+| `src/pipeline/schritte/schritt1_datenmodell.py` | CSV prüfen und in SQLite laden, Schema (Spalten, Typ, Beispielwerte) aus der Datenbank lesen und gegen das Artefakt abgleichen, ohne Sprachmodell (ADR 0007) | 5.3 |
 | `src/pipeline/schritte/schritt2_query.py` | KPI-Beschreibung in geprüftes SQL übersetzen | 5.4 |
 | `src/pipeline/schritte/schritt4_doku.py` | Dokumentation aus den Ergebnissen der anderen Schritte erzeugen | 5.6 |
 | `src/pipeline/run.py` | ein Befehl erzeugt das vollständige Paket | 5.7 |
