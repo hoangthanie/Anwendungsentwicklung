@@ -1,7 +1,7 @@
 # ADR 0004: Agent-Harness: eigene Mini-Harness statt OpenCode
 
 - **Status:** vorgeschlagen (Beschluss im Jour fixe)
-- **Datum:** 08.11.2026 · **Entschieden von:** Team im Jour fixe · **PSP:** 5.1 (DZ)
+- **Datum:** 08.11.2026 · **Vorgeschlagen von:** DZ · **PSP:** 5.1 (DZ)
 
 ## Kontext
 Die Spezifikation sah OpenCode als Agent-Harness vor, der PSP plant eine eigene Mini-Harness (`llm.py`, `run.py`). Die Pipeline-Schritte 1, 2 und 4 rufen das lokale Modell mit fest vorgegebenen Aufgaben auf und erwarten je Aufruf genau eine strukturierte Antwort (JSON). Rahmen: lokales Modell über Ollama (ADR 0001), RTX 4070 Super mit 12 GB, Kontext 12.288 Tokens.

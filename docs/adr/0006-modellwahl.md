@@ -1,7 +1,7 @@
 # ADR 0006: Modellwahl: qwen3:8b ohne Denkmodus
 
 - **Status:** vorgeschlagen (Beschluss im Jour fixe)
-- **Datum:** 08.11.2026 · **Entschieden von:** Team im Jour fixe · **PSP:** 5.1 (DZ)
+- **Datum:** 08.11.2026 · **Vorgeschlagen von:** DZ · **PSP:** 5.1 (DZ)
 
 ## Kontext
 ADR 0001 legt lokale Inferenz mit Qwen3 über Ollama fest, das konkrete Modell war offen (bisher qwen3:14b). Auf der RTX 4070 Super (12 GB) laufen mehrere Kandidaten. Qwen3-Modelle haben einen Denkmodus, in dem sie vor der Antwort Zwischenschritte ausgeben. Gesucht ist das Modell, das die Pipeline-Aufgaben zuverlässig löst und dabei am wenigsten Tokens und Zeit braucht.
@@ -33,7 +33,7 @@ Der Denkmodus brachte bei keinem Modell einen Genauigkeitsgewinn, kostete aber 6
 ## Konsequenzen
 - Die Harness (ADR 0004) sendet `think: false` und setzt eine Ausgabegrenze (`num_predict`). qwen3:8b mit Denkmodus geriet in einem früheren Versuch in eine Endlosschleife.
 - Das Modell ist eine Einstellung (`MODELL` in `backend/.env`), kein Code. `backend/.env.example` steht jetzt auf `qwen3:8b`, ein Wechsel braucht keine Codeänderung.
-- **Offen für den Jour fixe:** qwen3:14b ohne Denkmodus als Fallback in der Harness, z. B. wenn qwen3:8b keine gültige Antwort liefert. In der Messung ebenfalls 3 / 3, rund doppelt so langsam.
+- **Fallback, Bestätigung im Jour fixe offen:** qwen3:14b ohne Denkmodus springt ein, wenn die Antwort von qwen3:8b abgeschnitten oder kein gültiges JSON ist (höchstens ein Fallback-Aufruf). Umgesetzt in `llm.py` über `FALLBACK_MODELL` in `backend/.env`; ein leerer Wert schaltet ihn ab. In der Messung ebenfalls 3 / 3, rund doppelt so langsam.
 - Grenze der Messung: Die Aufgaben sind bewusst einfach, einen Qualitätsunterschied zwischen 8b und 14b zeigen sie nicht. Scheitert qwen3:8b an schwierigeren KPIs, messen wir mit dem vorhandenen Skript neu.
 
 ## Belege
