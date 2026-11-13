@@ -33,8 +33,9 @@ Der Denkmodus brachte bei keinem Modell einen Genauigkeitsgewinn, kostete aber 6
 ## Konsequenzen
 - Die Harness (ADR 0004) sendet `think: false` und setzt eine Ausgabegrenze (`num_predict`). qwen3:8b mit Denkmodus geriet in einem früheren Versuch in eine Endlosschleife.
 - Das Modell ist eine Einstellung (`MODELL` in `backend/.env`), kein Code. `backend/.env.example` steht jetzt auf `qwen3:8b`, ein Wechsel braucht keine Codeänderung.
-- **Fallback, Bestätigung im Jour fixe offen:** qwen3:14b ohne Denkmodus springt ein, wenn die Antwort von qwen3:8b abgeschnitten oder kein gültiges JSON ist (höchstens ein Fallback-Aufruf). Umgesetzt in `llm.py` über `FALLBACK_MODELL` in `backend/.env`; ein leerer Wert schaltet ihn ab. In der Messung ebenfalls 3 / 3, rund doppelt so langsam.
+- **Fallback, Bestätigung im Jour fixe offen:** qwen3:14b ohne Denkmodus springt ein, wenn die Antwort von qwen3:8b abgeschnitten oder kein gültiges JSON ist (höchstens ein Fallback-Aufruf). Umgesetzt in `llm.py` über `FALLBACK_MODELL` in `backend/.env`; ein leerer Wert schaltet ihn ab. Zusätzlich inhaltlicher Fallback in Schritt 2: Scheitert qwen3:8b dreimal an den Prüfschichten, bekommt qwen3:14b die Aufgabe samt letztem Fehler (ADR 0008). In der Messung ebenfalls 3 / 3, rund doppelt so langsam.
 - Grenze der Messung: Die Aufgaben sind bewusst einfach, einen Qualitätsunterschied zwischen 8b und 14b zeigen sie nicht. Scheitert qwen3:8b an schwierigeren KPIs, messen wir mit dem vorhandenen Skript neu.
+- **Nachtrag 13.11.2026 (Probeläufe Schritt 2, ADR 0008):** Erster belegter Qualitätsunterschied. Die KPI „Zielerreichung ggü. Vorperiode“ (Vergleich zweier Zeiträume) hat qwen3:8b in vier Läufen inhaltlich falsch gelöst, qwen3:14b mit demselben Prompt im ersten Versuch richtig (1,228). Die drei einfacheren KPIs lösen beide Modelle gleich. Das stützt die Wahl von qwen3:8b als Standard und qwen3:14b als Fallback für schwere Fälle.
 
 ## Belege
 - Begleitdokument `docs/docs_melanie/Modellwahl_und_Harness.docx`, Abschnitte 1 und 2

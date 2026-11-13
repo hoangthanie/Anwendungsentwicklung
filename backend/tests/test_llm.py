@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import httpx
 import ollama
 import pytest
 from dashboard_framework.harness.dashboard import erzeuge_config
@@ -61,6 +62,7 @@ def test_sendet_schema_ohne_denkmodus_mit_ausgabegrenze(protokoll):
     assert aufruf["format"] == SCHEMA
     assert aufruf["think"] is False  # ADR 0006: Denkmodus ausdrücklich aus
     assert aufruf["options"]["num_predict"] == 4096
+    assert aufruf["options"]["temperature"] == 0  # ADR 0008: gleiche Eingabe, gleiche Antwort
 
 
 def test_ohne_schema_kein_format(protokoll):
@@ -147,3 +149,32 @@ def test_schritt3_von_dominik_laeuft_mit_dieser_klasse(protokoll):
     assert [c.titel for c in config.charts] == [kpi.name for kpi in artefakt.kpis]
     assert fake.aufrufe[0]["format"] is not None  # Schritt 3 übergibt sein Schema, die Harness reicht es an Ollama weiter
     assert zeilen(protokoll)[0]["schritt"] == "dashboard"
+
+
+def test_fehlender_fallback_gibt_erste_antwort_zurueck(protokoll):
+    """Ist das Fallback-Modell nicht installiert, geht die erste Antwort nicht verloren (Hinweis aus dem Review von PR #13)."""
+    fake = FakeOllama(antwort("kein JSON"), ollama.ResponseError("model 'qwen3:14b' not found", 404))
+    llm = LLM(modell="qwen3:8b", fallback_modell="qwen3:14b", protokoll=protokoll, client=fake)
+
+    assert llm.antworte("Frage", "query", SCHEMA) == "kein JSON"  # der Schritt sieht die Antwort und fragt selbst nach
+    assert "qwen3:14b" in zeilen(protokoll)[1]["fehler"]
+
+
+def test_zeitueberschreitung_wird_verstaendlich_gemeldet(protokoll):
+    fake = FakeOllama(httpx.ReadTimeout("timed out"))
+    llm = LLM(modell="qwen3:8b", fallback_modell="", protokoll=protokoll, client=fake)
+
+    with pytest.raises(LLMFehler, match="nicht innerhalb von 300 Sekunden"):
+        llm.antworte("Frage", "query", SCHEMA)
+    assert zeilen(protokoll)[0]["fehler"] == "Zeitüberschreitung"
+
+
+def test_schritt_kann_gezielt_das_fallback_modell_anfragen(protokoll):
+    """Inhaltlicher Fallback (ADR 0008): Schritt 2 fragt nach drei Fehlversuchen direkt qwen3:14b an."""
+    fake = FakeOllama(antwort("kein JSON"))
+    llm = LLM(modell="qwen3:8b", fallback_modell="qwen3:14b", protokoll=protokoll, client=fake)
+
+    assert llm.antworte("Frage", "query", SCHEMA, versuch=4, modell="qwen3:14b") == "kein JSON"
+    assert [a["model"] for a in fake.aufrufe] == ["qwen3:14b"]  # kein weiterer technischer Fallback hinterher
+    zeile = zeilen(protokoll)[0]
+    assert zeile["modell"] == "qwen3:14b" and zeile["fallback"] is True and zeile["versuch"] == 4

@@ -14,3 +14,4 @@ Neue Entscheidung: `0000-vorlage.md` kopieren, nächste Nummer vergeben, als PR 
 | [0005](0005-github-actions.md) | GitHub + GitHub Actions für Repo und CI/CD | angenommen |
 | [0006](0006-modellwahl.md) | Modellwahl: qwen3:8b ohne Denkmodus | vorgeschlagen |
 | [0007](0007-schritt1-deterministisch.md) | Schritt 1 deterministisch, Daten über die gemeinsamen Bausteine laden | vorgeschlagen |
+| [0008](0008-pruefschichten-sql.md) | Prüfschichten für generiertes SQL | vorgeschlagen |
