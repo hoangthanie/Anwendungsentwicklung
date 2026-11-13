@@ -15,9 +15,10 @@ Schritt 3 liegt nicht hier, sondern bei Dominik unter `frontend/src/dashboard_fr
 
 | Pfad | Inhalt | PSP |
 |---|---|---|
-| `src/pipeline/harness/llm.py` | Mini-Harness (ADR 0004): Zugriff auf das Sprachmodell über Ollama, Format-Erzwingung per JSON-Schema, Denkmodus aus, optionaler Fallback, Run-Protokoll | 5.2 |
+| `src/pipeline/harness/llm.py` | Mini-Harness (ADR 0004): Zugriff auf das Sprachmodell über Ollama, Format-Erzwingung per JSON-Schema, Denkmodus aus, temperature 0, Timeout 300 s, optionaler Fallback, Run-Protokoll | 5.2 |
+| `src/pipeline/harness/validators.py` | Prüfschichten für generiertes SQL (ADR 0008) | 5.4 |
 | `src/pipeline/schritte/schritt1_datenmodell.py` | CSV prüfen und in SQLite laden, Schema (Spalten, Typ, Beispielwerte) aus der Datenbank lesen und gegen das Artefakt abgleichen, ohne Sprachmodell (ADR 0007) | 5.3 |
-| `src/pipeline/schritte/schritt2_query.py` | KPI-Beschreibung in geprüftes SQL übersetzen | 5.4 |
+| `src/pipeline/schritte/schritt2_query.py` | je KPI ein SQL vom Sprachmodell, geprüft durch die Prüfschichten, mit Reparaturschleife (höchstens 3 Versuche, danach einmal das Fallback-Modell) | 5.4 |
 | `src/pipeline/schritte/schritt4_doku.py` | Dokumentation aus den Ergebnissen der anderen Schritte erzeugen | 5.6 |
 | `src/pipeline/run.py` | ein Befehl erzeugt das vollständige Paket | 5.7 |
 | `runs/` | lokales Run-Protokoll (`metrics.jsonl`), wird nicht eingecheckt | 5.2 |
@@ -61,6 +62,6 @@ Die `.env` bleibt lokal und wird nicht eingecheckt.
 |---|---|
 | `OLLAMA_URL` | Adresse des Ollama-Servers |
 | `MODELL` | Standardmodell, laut ADR 0006 `qwen3:8b` |
-| `FALLBACK_MODELL` | Ausweichmodell, wenn die Antwort abgeschnitten oder kein gültiges JSON ist; leer = kein Fallback |
+| `FALLBACK_MODELL` | Ausweichmodell, wenn die Antwort abgeschnitten oder kein gültiges JSON ist; leer = kein Fallback. Das Modell muss installiert sein (`ollama pull qwen3:14b`); fehlt es, bleibt die erste Antwort erhalten |
 
 Jeder Modellaufruf schreibt eine Zeile nach `runs/metrics.jsonl` (Schritt, Versuch, Modell, Tokens, Dauer, Fallback ja/nein).
