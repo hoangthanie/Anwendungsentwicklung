@@ -22,6 +22,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import httpx
 import ollama
 from dotenv import load_dotenv
 
@@ -29,8 +30,10 @@ BACKEND = Path(__file__).resolve().parents[3]
 STANDARD_PROTOKOLL = BACKEND / "runs" / "metrics.jsonl"
 STANDARD_URL = "http://localhost:11434"
 
-# Feste Werte aus der Messung (ADR 0006): Kontext 12.288 Tokens, Ausgabegrenze 4.096 Tokens
-OPTIONEN = {"num_ctx": 12288, "num_predict": 4096}
+# Feste Werte aus der Messung (ADR 0006): Kontext 12.288 Tokens, Ausgabegrenze 4.096 Tokens.
+# temperature 0: gleiche Eingabe ergibt (praktisch) dieselbe Antwort, die Ergebnisse sind nachvollziehbar (ADR 0008).
+OPTIONEN = {"num_ctx": 12288, "num_predict": 4096, "temperature": 0}
+TIMEOUT_S = 300  # hängt Ollama, bricht der Aufruf nach dieser Zeit ab, statt die Pipeline endlos warten zu lassen
 
 
 class LLMFehler(RuntimeError):
@@ -60,17 +63,34 @@ class LLM:
             fallback_modell = os.environ.get("FALLBACK_MODELL", "")
         self.fallback_modell = fallback_modell.strip() or None
         self.protokoll = Path(protokoll)
-        self.client = client or ollama.Client(host=url or os.environ.get("OLLAMA_URL", STANDARD_URL))
+        self.client = client or ollama.Client(host=url or os.environ.get("OLLAMA_URL", STANDARD_URL), timeout=TIMEOUT_S)
 
-    def antworte(self, prompt: str, schritt: str, json_schema: dict | None = None, versuch: int = 1) -> str:
+    def antworte(
+        self,
+        prompt: str,
+        schritt: str,
+        json_schema: dict | None = None,
+        versuch: int = 1,
+        modell: str | None = None,
+    ) -> str:
         """Gibt den Antworttext des Modells zurück.
 
         versuch ist optional und landet nur im Run-Protokoll. Schritte mit Reparaturschleife können hier
         die Nummer des Versuchs übergeben; ohne Angabe steht 1 im Protokoll.
+        modell ist optional: Ein Schritt kann gezielt ein anderes Modell anfragen, z. B. das Fallback-Modell, wenn das
+        Hauptmodell an den Prüfschichten des Schritts gescheitert ist (inhaltlicher Fallback, ADR 0008). Ein solcher
+        Aufruf zählt im Protokoll als Fallback und löst selbst keinen weiteren technischen Fallback aus.
         """
+        ziel = modell or self.modell
+        if ziel != self.modell:
+            text, _ = self._rufe(ziel, prompt, schritt, json_schema, versuch, fallback=True)
+            return text
         text, brauchbar = self._rufe(self.modell, prompt, schritt, json_schema, versuch, fallback=False)
         if json_schema is not None and not brauchbar and self.fallback_modell and self.fallback_modell != self.modell:
-            text, _ = self._rufe(self.fallback_modell, prompt, schritt, json_schema, versuch, fallback=True)
+            try:
+                text, _ = self._rufe(self.fallback_modell, prompt, schritt, json_schema, versuch, fallback=True)
+            except LLMFehler:
+                pass  # Fallback nicht verfügbar (z. B. Modell nicht installiert): die erste Antwort bleibt, der Fehler steht im Protokoll
         return text
 
     def _rufe(self, modell: str, prompt: str, schritt: str, json_schema: dict | None, versuch: int, fallback: bool):
@@ -93,6 +113,9 @@ class LLM:
                 options=OPTIONEN,
                 stream=False,
             )
+        except httpx.TimeoutException:
+            self._protokolliere({**zeile, "dauer_s": round(time.perf_counter() - start, 2), "fehler": "Zeitüberschreitung"})
+            raise LLMFehler(f"Ollama hat nicht innerhalb von {TIMEOUT_S} Sekunden geantwortet. Hängt Ollama oder ist der Rechner ausgelastet?") from None
         except ConnectionError:
             self._protokolliere({**zeile, "dauer_s": round(time.perf_counter() - start, 2), "fehler": "Ollama nicht erreichbar"})
             raise LLMFehler("Ollama ist nicht erreichbar. Läuft Ollama auf diesem Rechner (OLLAMA_URL in backend/.env)?") from None
