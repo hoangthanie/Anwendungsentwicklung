@@ -45,4 +45,5 @@ Wir wählen **A2, B2, C2, D2, E2 und F2**.
 ## Belege
 - User Stories US-07 und US-08; Technische Spezifikation 3.4 (Doku-Schritt, Tab „Über dieses Dashboard“ als Erweiterung)
 - Tests: 102 Backend-Tests grün (vorher 74), darunter Fehlschlag in Schritt 2 ohne Paket und Überschreiben erst nach Erfolg
-- Probelauf mit Ollama und Demo-Daten (192 Zeilen): wird nach dem Lauf ergänzt
+- Probelauf 24.11.2026 (`dashframe-run`, Sales-Artefakt, Demo-Daten mit 192 Zeilen, qwen3:8b): Paket in 16 Sekunden, 7 Modellaufrufe, 5.924 Tokens Eingabe und 1.141 Ausgabe, alle Protokollzeilen mit derselben Lauf-Kennung. Drei von vier KPIs richtig; „Zielerreichung ggü. Vorperiode“ falsch (ADR 0008, Nachtrag, Probeläufe 7–10). Die Doku nennt Zweck, Zielgruppe, Datei, Zeilenzahl und Zeitraum korrekt; bei der falschen KPI beschreibt der Erklärtext die Vorgabe statt des SQL. Das bestätigt die bekannte Grenze oben: Vorgabe und SQL stehen deshalb immer daneben
+- Fehlschlag in Probelauf 9 (qwen3:14b): kein Paket, Meldung mit Schritt, Grund und Hinweis, wie unter Entscheidung 2 und 3 vorgesehen
