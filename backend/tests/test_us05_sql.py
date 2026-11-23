@@ -408,5 +408,8 @@ def test_abbruch_wenn_auch_das_fallback_modell_scheitert(kpi, schema, db):
 def test_fehlendes_fallback_modell_bricht_sauber_ab(kpi, schema, db):
     llm = FakeLLM(FALSCH, FALSCH, FALSCH, LLMFehler("Modell nicht installiert"), fallback_modell="qwen3:14b")
 
-    with pytest.raises(SqlFehler, match="Unbekannte Spalte"):  # Meldung zum eigentlichen Problem, kein Absturz
+    with pytest.raises(SqlFehler, match="Unbekannte Spalte") as fehler:  # Meldung zum eigentlichen Problem, kein Absturz
         erzeuge_sql(kpi, schema, "absatz", llm, db)
+    meldung = str(fehler.value)
+    assert "nicht verfügbar war: Modell nicht installiert" in meldung  # ehrlich: das Fallback-Modell hat es nie versucht
+    assert "auch nicht mit dem Fallback-Modell" not in meldung

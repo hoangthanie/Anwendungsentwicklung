@@ -193,6 +193,7 @@ def erzeuge_sql(
     fallback = getattr(llm, "fallback_modell", None)
     if fallback == getattr(llm, "modell", None):
         fallback = None
+    fallback_fehler = ""  # gesetzt, wenn das Fallback-Modell gar nicht antworten konnte (z. B. nicht installiert)
     plan = [(nr, None) for nr in range(1, versuche + 1)]
     if fallback:
         plan.append((versuche + 1, fallback))  # Eskalation: Aufgabe samt letztem Fehler an das größere Modell
@@ -202,7 +203,8 @@ def erzeuge_sql(
         else:
             try:
                 text = llm.antworte(prompt, SCHRITT, ANTWORT_SCHEMA, versuch=versuch, modell=modell)
-            except LLMFehler:
+            except LLMFehler as fehler:
+                fallback_fehler = str(fehler)
                 break  # Fallback-Modell nicht verfügbar: es bleibt beim Abbruch mit dem letzten Fehler des Hauptmodells
         sql = ""
         try:
@@ -223,7 +225,12 @@ def erzeuge_sql(
             letzter_fehler = str(fehler)
             vorher = f"Dein letztes SQL war:\n{sql}\n" if sql else ""
             prompt = f"{basis}\n\n{vorher}Es ist ungültig: {letzter_fehler}\nKorrigiere es und antworte erneut nur mit JSON."
-    zusatz = f", auch nicht mit dem Fallback-Modell {fallback}" if fallback else ""
+    if fallback_fehler:
+        zusatz = f". Das Fallback-Modell {fallback} konnte nicht helfen, weil es nicht verfügbar war: {fallback_fehler}"
+    elif fallback:
+        zusatz = f", auch nicht mit dem Fallback-Modell {fallback}"
+    else:
+        zusatz = ""
     raise SqlFehler(f"KPI '{kpi.name}': kein gültiges SQL nach {versuche} Versuchen{zusatz}. Letzter Fehler: {letzter_fehler}")
 
 
