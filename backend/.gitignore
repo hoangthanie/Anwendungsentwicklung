@@ -8,3 +8,5 @@ __pycache__/
 runs/*
 !runs/.gitkeep
 *.db
+# Erzeugte Dashboard-Pakete (Daten und evtl. Firmenlogo): nicht einchecken
+ausgabe/
