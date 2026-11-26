@@ -2,6 +2,8 @@
 
 Format: Kontext – Alternativen – Entscheidung – Konsequenz. Neueste Einträge unten anhängen.
 
+**Teamweite ADRs:** Die wichtigen Entscheidungen dieses Logs stehen als ADR im Repository (`docs/adr/`): E-03/E-04/E-07 → ADR 0009, E-10 bis E-12 → ADR 0010, E-15/E-16 → ADR 0011, E-13/E-14 → ADR 0012, E-06 → ADR 0013, E-08 → ADR 0014, E-09 → ADR 0015; Raspberry Pi → ADR 0016 und 0017. E-01, E-02 und E-05 sind Arbeitsweise-Entscheidungen und bleiben nur hier.
+
 ## E-01 – Lokaler Klon außerhalb von OneDrive (2026-10-27)
 - **Kontext:** Repo soll lokal liegen; der Uni-Ordner liegt in OneDrive.
 - **Alternativen:** (A) Klon in OneDrive, (B) Klon unter `C:\dev`.

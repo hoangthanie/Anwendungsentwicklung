@@ -15,3 +15,12 @@ Neue Entscheidung: `0000-vorlage.md` kopieren, nächste Nummer vergeben, als PR 
 | [0006](0006-modellwahl.md) | Modellwahl: qwen3:8b ohne Denkmodus | vorgeschlagen |
 | [0007](0007-schritt1-deterministisch.md) | Schritt 1 deterministisch, Daten über die gemeinsamen Bausteine laden | vorgeschlagen |
 | [0008](0008-pruefschichten-sql.md) | Prüfschichten für generiertes SQL | vorgeschlagen |
+| [0009](0009-fachlogik-getrennt-von-streamlit.md) | Fachlogik in reinen Funktionen, Streamlit dünn, Frontend als installierbares Paket | vorgeschlagen |
+| [0010](0010-pruefung-im-artefakt-modell.md) | Prüfregeln im Artefakt-Modell, strenge Bezeichner, sicheres YAML-Laden | vorgeschlagen |
+| [0011](0011-spaltenverweise-in-anfuehrungszeichen.md) | Spaltenverweise in Anführungszeichen (gespeichert mit Backticks), Datum mit Uhrzeit | vorgeschlagen |
+| [0012](0012-schritt3-modell-waehlt-nur-darstellung.md) | Schritt 3: Modell wählt nur die Darstellung, Abbruch statt Ersatzkonfiguration | vorgeschlagen |
+| [0013](0013-upload-nur-anhaengen.md) | Daten-Upload im Runner: zunächst nur anhängen, geprüft und atomar | vorgeschlagen |
+| [0014](0014-sicherheit-im-runner.md) | Sicherheit im Runner: nur lesendes SQL, neu kodiertes Logo, escaptes HTML | vorgeschlagen |
+| [0015](0015-gestaltungssystem-formblatt.md) | Gestaltungssystem „Formblatt“: festes helles Theme, Kundenfarbe nur als Akzent | vorgeschlagen |
+| [0016](0016-frontend-komplett-auf-dem-pi.md) | Gesamtes Frontend auf dem Raspberry Pi, Pipeline mit Modell nicht | vorgeschlagen |
+| [0017](0017-docker-einrichtung-und-netzwerkzugriff-pi.md) | Docker (zwei Container), Einrichtung per Skript, Zugriff über LAN und Tailscale | vorgeschlagen |
