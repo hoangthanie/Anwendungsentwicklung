@@ -8,7 +8,7 @@ Was die Klasse tut, und nur das:
 - Format per JSON-Schema erzwingen, wenn eines übergeben wird,
 - Denkmodus ausdrücklich aus (think=False) und feste Ausgabegrenze (ADR 0006),
 - optionaler Fallback: Ist die Antwort abgeschnitten oder kein gültiges JSON, einmal beim Fallback-Modell nachfragen,
-- je Aufruf eine Zeile im Run-Protokoll runs/metrics.jsonl (US-08.3).
+- je Aufruf eine Zeile im Run-Protokoll runs/metrics.jsonl (US-08.3), mit der Kennung des Pipeline-Laufs.
 
 Ob der INHALT einer Antwort stimmt, prüft der jeweilige Schritt selbst und fragt bei Bedarf erneut nach.
 Deshalb gibt es hier keine eigene Wiederholung.
@@ -45,6 +45,7 @@ class LLM:
 
     Ohne Angaben kommen Modell, Fallback-Modell und Adresse aus backend/.env (MODELL, FALLBACK_MODELL, OLLAMA_URL).
     Ein leeres FALLBACK_MODELL schaltet den Fallback ab. client und protokoll lassen sich für Tests ersetzen.
+    lauf ist die Kennung des Pipeline-Laufs (z. B. 2026-11-23T21:50:12_sales); sie steht in jeder Protokollzeile.
     """
 
     def __init__(
@@ -54,6 +55,7 @@ class LLM:
         url: str | None = None,
         protokoll: str | Path = STANDARD_PROTOKOLL,
         client: object | None = None,
+        lauf: str | None = None,
     ):
         load_dotenv(BACKEND / ".env")
         self.modell = modell or os.environ.get("MODELL", "")
@@ -63,6 +65,7 @@ class LLM:
             fallback_modell = os.environ.get("FALLBACK_MODELL", "")
         self.fallback_modell = fallback_modell.strip() or None
         self.protokoll = Path(protokoll)
+        self.lauf = lauf  # Kennung des Pipeline-Laufs; run.py setzt sie, damit sich jeder Lauf im Protokoll abgrenzen lässt
         self.client = client or ollama.Client(host=url or os.environ.get("OLLAMA_URL", STANDARD_URL), timeout=TIMEOUT_S)
 
     def antworte(
@@ -98,6 +101,7 @@ class LLM:
         falls ein Schema verlangt war, gültiges JSON."""
         zeile = {
             "zeit": datetime.now().isoformat(timespec="seconds"),
+            "lauf": self.lauf,
             "schritt": schritt,
             "versuch": versuch,
             "modell": modell,
@@ -121,6 +125,8 @@ class LLM:
             raise LLMFehler("Ollama ist nicht erreichbar. Läuft Ollama auf diesem Rechner (OLLAMA_URL in backend/.env)?") from None
         except ollama.ResponseError as fehler:
             self._protokolliere({**zeile, "dauer_s": round(time.perf_counter() - start, 2), "fehler": str(fehler)})
+            if fehler.status_code == 404:
+                raise LLMFehler(f"Das Modell '{modell}' ist nicht installiert. Installieren mit: ollama pull {modell}") from None
             raise LLMFehler(f"Ollama hat den Aufruf mit Modell '{modell}' abgelehnt: {fehler}") from None
 
         text = antwort.message.content or ""

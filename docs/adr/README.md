@@ -15,3 +15,4 @@ Neue Entscheidung: `0000-vorlage.md` kopieren, nächste Nummer vergeben, als PR 
 | [0006](0006-modellwahl.md) | Modellwahl: qwen3:8b ohne Denkmodus | vorgeschlagen |
 | [0007](0007-schritt1-deterministisch.md) | Schritt 1 deterministisch, Daten über die gemeinsamen Bausteine laden | vorgeschlagen |
 | [0008](0008-pruefschichten-sql.md) | Prüfschichten für generiertes SQL | vorgeschlagen |
+| [0009](0009-schritt4-und-pipeline-lauf.md) | Schritt 4 und Pipeline-Lauf: Doku für den Anwender, ein Aufruf, keine halben Pakete | vorgeschlagen |

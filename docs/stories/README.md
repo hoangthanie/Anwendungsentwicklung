@@ -22,7 +22,7 @@ Die Tests liegen bei den jeweiligen Teilen: `frontend/tests/` (US-01, 02, 03, 06
 | [US-04](US-04-datenstruktur-automatisch-auslesen.md) | Datenstruktur automatisch auslesen | E2 Agenten-Pipeline | 5.3 | DZ | Must |
 | [US-05](US-05-kpi-beschreibung-in-geprueftes-sql-uebersetzen.md) | KPI-Beschreibung in geprüftes SQL übersetzen | E2 Agenten-Pipeline | 5.4 | DZ | Must |
 | [US-06](US-06-dashboard-konfiguration-erzeugen.md) | Dashboard-Konfiguration erzeugen | E2 Agenten-Pipeline | 5.5 | DB | Must |
-| [US-07](US-07-dokumentation-automatisch-erzeugen.md) | Dokumentation automatisch erzeugen | E2 Agenten-Pipeline | 5.6 | MP | Should |
+| [US-07](US-07-dokumentation-automatisch-erzeugen.md) | Dokumentation automatisch erzeugen | E2 Agenten-Pipeline | 5.6 | DZ | Should |
 | [US-08](US-08-ein-befehl-erzeugt-das-vollstaendige-paket.md) | Ein Befehl erzeugt das vollständige Paket | E2 Agenten-Pipeline | 5.2, 5.7 | DZ | Must |
 | [US-09](US-09-dashboard-anzeigen.md) | Dashboard anzeigen | E3 Dashboard zur Laufzeit | 6.3 | DB | Must |
 | [US-10](US-10-neue-daten-hochladen.md) | Neue Daten hochladen | E3 Dashboard zur Laufzeit | 6.3 | DB | Should |

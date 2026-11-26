@@ -10,6 +10,8 @@ pandas>=2.2
 # Offizielle Python-Bibliothek für Ollama: Anfragen an Qwen3, JSON-Schema-Erzwingung (format=...),
 # liefert Token-Zahlen und Laufzeiten je Aufruf für runs/metrics.jsonl
 ollama>=0.4
+# Zeitüberschreitung beim Aufruf erkennen (httpx.TimeoutException in llm.py); kommt mit ollama, steht hier, weil llm.py es direkt nutzt
+httpx>=0.27
 # Liest die lokale .env (OLLAMA_URL, MODELL) beim Start ein
 python-dotenv>=1.0
 

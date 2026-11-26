@@ -8,12 +8,15 @@ from __future__ import annotations
 
 import re
 import sqlite3
+import time
 from pathlib import Path
 
 import sqlglot
 from dashboard_framework.models.spalten import aehnliche_spalte
 from dashboard_framework.runner.sicherheit import verbinde_nur_lesend
 from sqlglot import exp
+
+ZEITLIMIT_S = 10  # so lange darf ein SQL bei der Prüfung höchstens laufen; schützt vor Abfragen, die nie fertig werden
 
 
 class SqlPruefFehler(ValueError):
@@ -68,10 +71,29 @@ def pruefe_bedeutung(sql: str, erlaubte_spalten: set[str]) -> None:
         )
 
 
+def _ist_alias_verweis(spalte: exp.Column) -> bool:
+    """True, wenn der Name nur auf einen Alias derselben Abfrage zeigt, z. B. 'umsatz' in
+    'SELECT COUNT(*) AS umsatz ... ORDER BY umsatz'. Steht der Name im Ausdruck eines Alias selbst
+    ('SUM(umsatz) AS umsatz'), ist es die echte Tabellenspalte."""
+    if spalte.table:
+        return False  # absatz.umsatz ist immer die Tabellenspalte
+    naechstes = spalte.find_ancestor(exp.Alias, exp.Select)
+    if not isinstance(naechstes, exp.Select):
+        return False  # liegt im Ausdruck eines Alias (oder außerhalb einer Abfrage)
+    aliase = {a.alias.lower() for a in naechstes.expressions if isinstance(a, exp.Alias) and a.alias}
+    return spalte.name.lower() in aliase
+
+
+def echte_spalten(baum: exp.Expression) -> set[str]:
+    """Spaltennamen, die wirklich aus der Tabelle gelesen werden (kleingeschrieben), ohne bloße Verweise auf eigene Aliase."""
+    return {c.name.lower() for c in baum.find_all(exp.Column) if c.name and not _ist_alias_verweis(c)}
+
+
 def pruefe_anker(sql: str, anker: list[str]) -> None:
     """Die Spalten, die in der KPI-Beschreibung in Backticks stehen, müssen im SQL vorkommen.
-    Fängt den Fall ab, dass das Modell die genannte Spalte ignoriert und etwas anderes berechnet."""
-    verwendet = verwendete_spalten(zerlege(sql))
+    Fängt den Fall ab, dass das Modell die genannte Spalte ignoriert und etwas anderes berechnet.
+    Ein Alias mit demselben Namen zählt nicht ('COUNT(*) AS umsatz ... ORDER BY umsatz' liest umsatz nie)."""
+    verwendet = echte_spalten(zerlege(sql))
     fehlend = [a for a in anker if a.lower() not in verwendet]
     if fehlend:
         raise SqlPruefFehler(f"Die KPI beruht auf der Spalte bzw. den Spalten {', '.join(fehlend)}, das SQL verwendet sie nicht")
@@ -117,14 +139,25 @@ def pruefe_ohne_systemzeit(sql: str) -> None:
         )
 
 
-def fuehre_aus(sql: str, db_pfad: str | Path) -> tuple[list[str], list[tuple]]:
-    """Führt das SQL schreibgeschützt aus und liefert (Spaltennamen, Zeilen). Fehler von SQLite werden zur Meldung."""
+def fuehre_aus(sql: str, db_pfad: str | Path, zeitlimit_s: float = ZEITLIMIT_S) -> tuple[list[str], list[tuple]]:
+    """Führt das SQL schreibgeschützt aus und liefert (Spaltennamen, Zeilen). Fehler von SQLite werden zur Meldung.
+
+    Läuft das SQL länger als zeitlimit_s, bricht SQLite es ab (z. B. eine Teilabfrage ohne Ende oder eine
+    Verknüpfung der Tabelle mit sich selbst). Sonst bliebe die Pipeline an dieser Stelle hängen.
+    """
     verbindung = verbinde_nur_lesend(db_pfad)
+    ende = time.monotonic() + zeitlimit_s
+    verbindung.set_progress_handler(lambda: 1 if time.monotonic() > ende else 0, 10_000)  # 1 = abbrechen
     try:
         cursor = verbindung.execute(sql)
         spalten = [d[0] for d in cursor.description or []]
         return spalten, cursor.fetchall()
     except sqlite3.Error as fehler:
+        if time.monotonic() > ende:
+            raise SqlPruefFehler(
+                f"Das SQL lief länger als {zeitlimit_s:g} Sekunden und wurde abgebrochen. Schreibe eine einfachere Abfrage "
+                "ohne Verknüpfung der Tabelle mit sich selbst und ohne rekursive Teilabfrage"
+            ) from None
         raise SqlPruefFehler(f"SQLite meldet beim Ausführen: {fehler}") from None
     finally:
         verbindung.close()

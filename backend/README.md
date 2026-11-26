@@ -16,11 +16,11 @@ Schritt 3 liegt nicht hier, sondern bei Dominik unter `frontend/src/dashboard_fr
 | Pfad | Inhalt | PSP |
 |---|---|---|
 | `src/pipeline/harness/llm.py` | Mini-Harness (ADR 0004): Zugriff auf das Sprachmodell über Ollama, Format-Erzwingung per JSON-Schema, Denkmodus aus, temperature 0, Timeout 300 s, optionaler Fallback, Run-Protokoll | 5.2 |
-| `src/pipeline/harness/validators.py` | Prüfschichten für generiertes SQL (ADR 0008) | 5.4 |
+| `src/pipeline/harness/validators.py` | Prüfschichten für generiertes SQL (ADR 0008); jedes SQL läuft bei der Prüfung höchstens 10 Sekunden | 5.4 |
 | `src/pipeline/schritte/schritt1_datenmodell.py` | CSV prüfen und in SQLite laden, Schema (Spalten, Typ, Beispielwerte) aus der Datenbank lesen und gegen das Artefakt abgleichen, ohne Sprachmodell (ADR 0007) | 5.3 |
 | `src/pipeline/schritte/schritt2_query.py` | je KPI ein SQL vom Sprachmodell, geprüft durch die Prüfschichten, mit Reparaturschleife (höchstens 3 Versuche, danach einmal das Fallback-Modell) | 5.4 |
-| `src/pipeline/schritte/schritt4_doku.py` | Dokumentation aus den Ergebnissen der anderen Schritte erzeugen | 5.6 |
-| `src/pipeline/run.py` | ein Befehl erzeugt das vollständige Paket | 5.7 |
+| `src/pipeline/schritte/schritt4_doku.py` | Beschreibung des Dashboards für den Anwender (Tab „Über dieses Dashboard“ und `README.md` im Paket): Fakten aus der Vorlage, nur die Erklärtexte vom Sprachmodell (ein Aufruf) | 5.6 |
+| `src/pipeline/run.py` | ein Aufruf erzeugt das vollständige Paket: `pipeline()` für das Frontend, Befehl `dashframe-run` für das Terminal | 5.7 |
 | `runs/` | lokales Run-Protokoll (`metrics.jsonl`), wird nicht eingecheckt | 5.2 |
 | `tests/` | Tests für das Backend | – |
 
@@ -64,4 +64,42 @@ Die `.env` bleibt lokal und wird nicht eingecheckt.
 | `MODELL` | Standardmodell, laut ADR 0006 `qwen3:8b` |
 | `FALLBACK_MODELL` | Ausweichmodell, wenn die Antwort abgeschnitten oder kein gültiges JSON ist; leer = kein Fallback. Das Modell muss installiert sein (`ollama pull qwen3:14b`); fehlt es, bleibt die erste Antwort erhalten |
 
-Jeder Modellaufruf schreibt eine Zeile nach `runs/metrics.jsonl` (Schritt, Versuch, Modell, Tokens, Dauer, Fallback ja/nein).
+Jeder Modellaufruf schreibt eine Zeile nach `runs/metrics.jsonl` (Lauf, Schritt, Versuch, Modell, Tokens, Dauer, Fallback ja/nein). Das Feld `lauf` (z. B. `2026-11-23T21:50:12_sales`) ist bei allen Aufrufen eines Pipeline-Laufs gleich. So lässt sich auswerten, was ein einzelnes Dashboard gekostet hat.
+
+## Dashboard erzeugen
+
+Voraussetzung: Ollama läuft, die Modelle aus der `.env` sind installiert (`ollama pull qwen3:8b`, `ollama pull qwen3:14b`).
+
+Im Terminal (Git Bash), im Ordner `backend` mit aktivem venv:
+```
+pip install -r requirements.txt
+dashframe-run ../frontend/artefakte/sales pfad/zu/daten.csv
+```
+`pip install` ist nur einmal nötig, es richtet den Befehl `dashframe-run` ein. Ohne den Befehl geht es auch mit `python -m pipeline.run …`.
+
+Der Befehl zeigt an, welcher Schritt gerade läuft. Am Ende liegt das Paket in `ausgabe/sales/`:
+
+| Datei | Inhalt |
+|---|---|
+| `dashboard.json` | Konfiguration für den Runner, mit der Beschreibung für den Tab „Über dieses Dashboard“ |
+| `daten.db` | die geprüften Daten |
+| `README.md` | dieselbe Beschreibung als Datei |
+| Logo | falls im Artefakt hinterlegt |
+
+Der Ordner läuft so, wie er ist: lokal mit dem Runner oder auf dem Raspberry Pi, dort den Inhalt nach `/srv/dashboards/aktuell` kopieren.
+Ein vorhandenes Paket wird nur mit `--ueberschreiben` ersetzt, und erst dann, wenn das neue fertig ist. Scheitert ein Schritt, entsteht kein Paket. Der Befehl nennt den Schritt, die Gründe und was zu tun ist, und endet mit Exit-Code 1.
+
+Lokal ansehen (im Ordner `frontend` mit dessen venv):
+```
+DASHBOARD_CONFIG=../backend/ausgabe/sales/dashboard.json streamlit run src/dashboard_framework/runner/app.py
+```
+
+Aus dem Frontend (z. B. hinter einem Knopf) läuft derselbe Ablauf über eine Funktion:
+```python
+from pipeline.run import PipelineFehler, pipeline
+
+try:
+    paket = pipeline(artefakt_ordner, csv_pfad, ausgabe, fortschritt=anzeige)  # anzeige(text) zeigt den laufenden Schritt
+except PipelineFehler as fehler:
+    ...  # fehler.schritt, fehler.meldungen, fehler.hinweis anzeigen
+```

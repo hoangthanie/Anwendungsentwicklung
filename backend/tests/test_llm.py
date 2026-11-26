@@ -90,6 +90,16 @@ def test_jeder_aufruf_wird_protokolliert(protokoll):  # US-08.3
     assert "zeit" in zeile
 
 
+def test_lauf_kennung_steht_in_jeder_zeile(protokoll):  # US-08.3: Läufe im Protokoll voneinander abgrenzen
+    fake = FakeOllama(antwort('{"sql": "SELECT 1"}'), antwort('{"sql": "SELECT 2"}'))
+    llm = LLM(modell="qwen3:8b", fallback_modell="", protokoll=protokoll, client=fake, lauf="2026-11-23T21:50:12_sales")
+
+    llm.antworte("Frage", "query", SCHEMA)
+    llm.antworte("Frage", "dashboard", SCHEMA)
+
+    assert [z["lauf"] for z in zeilen(protokoll)] == ["2026-11-23T21:50:12_sales"] * 2
+
+
 @pytest.mark.parametrize("erste", [antwort('{"sql": "SELE', done_reason="length"), antwort("kein JSON")])
 def test_fallback_bei_abgeschnittener_oder_ungueltiger_antwort(protokoll, erste):
     fake = FakeOllama(erste, antwort('{"sql": "SELECT 1"}'))
@@ -132,7 +142,7 @@ def test_verstaendliche_meldung_wenn_modell_fehlt(protokoll):
     fake = FakeOllama(ollama.ResponseError("model 'qwen3:8b' not found", 404))
     llm = LLM(modell="qwen3:8b", fallback_modell="", protokoll=protokoll, client=fake)
 
-    with pytest.raises(LLMFehler, match="qwen3:8b"):
+    with pytest.raises(LLMFehler, match=r"nicht installiert\. Installieren mit: ollama pull qwen3:8b"):
         llm.antworte("Frage", "query", SCHEMA)
 
 

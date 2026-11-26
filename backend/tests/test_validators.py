@@ -6,6 +6,8 @@ import pytest
 
 from pipeline.harness.validators import (
     SqlPruefFehler,
+    fuehre_aus,
+    pruefe_anker,
     pruefe_ausfuehrbar,
     pruefe_tabelle,
     zerlege,
@@ -41,3 +43,32 @@ def test_teilabfrage_mit_with_ist_keine_fremde_tabelle():
 def test_unlesbares_sql_wird_gemeldet():
     with pytest.raises(SqlPruefFehler, match="kein gültiges SQLite"):
         zerlege("SELECT FROM WHERE")
+
+
+# --- Anker: ein gleichnamiger Alias zählt nicht als Spalte (Hinweis 1 aus Review #15) ---------------
+
+
+def test_alias_mit_name_der_ankerspalte_wird_abgelehnt():
+    with pytest.raises(SqlPruefFehler, match="umsatz"):
+        pruefe_anker("SELECT region, COUNT(*) AS umsatz FROM absatz GROUP BY region ORDER BY umsatz", ["umsatz"])
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT region, SUM(umsatz) AS umsatz FROM absatz GROUP BY region ORDER BY umsatz",  # Spalte im Ausdruck des Alias
+        "SELECT region, SUM(absatz.umsatz) AS summe FROM absatz GROUP BY region",  # mit Tabellenname
+        "WITH m AS (SELECT region, umsatz FROM absatz) SELECT region, SUM(umsatz) AS summe FROM m GROUP BY region",
+    ],
+)
+def test_echte_verwendung_der_ankerspalte_besteht(sql):
+    pruefe_anker(sql, ["umsatz"])
+
+
+# --- Zeitlimit (Hinweis 4 aus Review #15) ----------------------------------------------------------
+
+
+def test_endlose_abfrage_wird_nach_dem_zeitlimit_abgebrochen(db):
+    endlos = "WITH RECURSIVE z(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM z) SELECT COUNT(*) FROM z"
+    with pytest.raises(SqlPruefFehler, match="länger als 0.2 Sekunden"):
+        fuehre_aus(endlos, db, zeitlimit_s=0.2)
