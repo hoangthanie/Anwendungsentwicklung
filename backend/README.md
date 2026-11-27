@@ -16,12 +16,15 @@ Schritt 3 liegt nicht hier, sondern bei Dominik unter `frontend/src/dashboard_fr
 | Pfad | Inhalt | PSP |
 |---|---|---|
 | `src/pipeline/harness/llm.py` | Mini-Harness (ADR 0004): Zugriff auf das Sprachmodell über Ollama, Format-Erzwingung per JSON-Schema, Denkmodus aus, temperature 0, Timeout 300 s, optionaler Fallback, Run-Protokoll | 5.2 |
-| `src/pipeline/harness/validators.py` | Prüfschichten für generiertes SQL (ADR 0008); jedes SQL läuft bei der Prüfung höchstens 10 Sekunden | 5.4 |
+| `src/pipeline/harness/validators.py` | Prüfschichten für generiertes SQL (ADR 0008), u. a. „ein Einzelwert hat genau eine Spalte“; jedes SQL läuft bei der Prüfung höchstens 10 Sekunden | 5.4 |
 | `src/pipeline/schritte/schritt1_datenmodell.py` | CSV prüfen und in SQLite laden, Schema (Spalten, Typ, Beispielwerte) aus der Datenbank lesen und gegen das Artefakt abgleichen, ohne Sprachmodell (ADR 0007) | 5.3 |
 | `src/pipeline/schritte/schritt2_query.py` | je KPI ein SQL vom Sprachmodell, geprüft durch die Prüfschichten, mit Reparaturschleife (höchstens 3 Versuche, danach einmal das Fallback-Modell) | 5.4 |
 | `src/pipeline/schritte/schritt4_doku.py` | Beschreibung des Dashboards für den Anwender (Tab „Über dieses Dashboard“ und `README.md` im Paket): Fakten aus der Vorlage, nur die Erklärtexte vom Sprachmodell (ein Aufruf) | 5.6 |
 | `src/pipeline/run.py` | ein Aufruf erzeugt das vollständige Paket: `pipeline()` für das Frontend, Befehl `dashframe-run` für das Terminal | 5.7 |
-| `runs/` | lokales Run-Protokoll (`metrics.jsonl`), wird nicht eingecheckt | 5.2 |
+| `tools/testdaten.py` | synthetische Testdaten mit festem Seed: Sales (192 Zeilen) und Aktivitätsmonitor (495 Zeilen) | – |
+| `tools/testset_sql.py`, `tools/messung_sql.py` | Testset mit 15 KPIs und Referenzwerten; misst, wie viele davon ein Modell in Schritt 2 richtig löst | 8.3 |
+| `tools/messung_modellwahl.py`, `tools/messung_opencode.py` | Messungen zur Modellwahl und zum Vergleich mit OpenCode (ADR 0004, 0006) | – |
+| `runs/` | lokales Run-Protokoll (`metrics.jsonl`), Testdaten und Messergebnisse, wird nicht eingecheckt | 5.2 |
 | `tests/` | Tests für das Backend | – |
 
 Die PSP-Nummern für Schritt 1, 2, 4 und `run.py` sind vorläufig, bitte mit dem PSP abgleichen.
@@ -64,7 +67,14 @@ Die `.env` bleibt lokal und wird nicht eingecheckt.
 | `MODELL` | Standardmodell, laut ADR 0006 `qwen3:8b` |
 | `FALLBACK_MODELL` | Ausweichmodell, wenn die Antwort abgeschnitten oder kein gültiges JSON ist; leer = kein Fallback. Das Modell muss installiert sein (`ollama pull qwen3:14b`); fehlt es, bleibt die erste Antwort erhalten |
 
-Jeder Modellaufruf schreibt eine Zeile nach `runs/metrics.jsonl` (Lauf, Schritt, Versuch, Modell, Tokens, Dauer, Fallback ja/nein). Das Feld `lauf` (z. B. `2026-11-23T21:50:12_sales`) ist bei allen Aufrufen eines Pipeline-Laufs gleich. So lässt sich auswerten, was ein einzelnes Dashboard gekostet hat.
+Das Run-Protokoll `runs/metrics.jsonl` hat zwei Arten von Zeilen, erkennbar am Feld `art`:
+
+| `art` | wann | Inhalt |
+|---|---|---|
+| `aufruf` | je Modellaufruf | Lauf, Schritt, Versuch, Modell, Tokens, Dauer, Fallback ja/nein |
+| `pruefung` | je geprüftem SQL in Schritt 2 | Lauf, Versuch, Modell, `ergebnis` (bestanden/abgelehnt), das `sql` und die `fehler`-Meldung |
+
+Das Feld `lauf` (z. B. `2026-11-23T21:50:12_sales`) ist bei allen Zeilen eines Pipeline-Laufs gleich. So lässt sich auswerten, was ein einzelnes Dashboard gekostet hat und woran ein Versuch gescheitert ist. Für Token-Auswertungen nur Zeilen mit `"art": "aufruf"` zählen.
 
 ## Dashboard erzeugen
 
@@ -103,3 +113,15 @@ try:
 except PipelineFehler as fehler:
     ...  # fehler.schritt, fehler.meldungen, fehler.hinweis anzeigen
 ```
+
+## Schritt 2 messen
+
+Das Messwerkzeug lässt Schritt 2 auf einem festen Testset mit 15 KPIs laufen, von einfach (Summe je Region) bis schwer (Vergleich zweier Zeiträume), und vergleicht jedes geprüfte SQL mit einer Referenz. So lassen sich Modelle und spätere Varianten auf denselben Fällen vergleichen. Im Ordner `backend` mit aktivem venv, Ollama läuft:
+
+```
+python tools/messung_sql.py --modell qwen3:8b
+python tools/messung_sql.py --modell qwen3:8b --fallback qwen3:14b
+python tools/messung_sql.py --modell qwen3:8b --fall Zielerreichung
+```
+
+Je KPI lautet das Ergebnis `richtig`, `falsch` (geprüftes, aber falsches SQL: der gefährliche Fall), `abbruch` (kein gültiges SQL, ehrlich) oder `abgelehnt` (berechenbare KPI fälschlich abgelehnt). Die Zusammenfassung erscheint im Terminal; Details je KPI (SQL, Versuche, Tokens, Dauer) stehen in `runs/messung_sql.csv`, jeder Aufruf und jede Prüfung in `runs/messung_sql.jsonl`. Neue Fälle kommen in `tools/testset_sql.py`. Ein Test stellt sicher, dass jede Referenz alle Prüfschichten besteht.
