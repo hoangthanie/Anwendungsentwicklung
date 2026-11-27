@@ -452,3 +452,19 @@ def test_jeder_versuch_steht_mit_sql_und_meldung_im_protokoll(kpi, schema, db):
         (1, None, True), (2, None, True), (3, None, True), (4, "qwen3:14b", False)
     ]
     assert llm.pruefungen[0]["sql"].startswith("SELECT regoin") and "Unbekannte Spalte" in llm.pruefungen[0]["fehler"]
+
+
+def test_zweimal_dieselbe_fehlende_spalte_fuehrt_zur_ablehnung(kpi, schema, db):  # Messung 2: sonst Ersatzspalte
+    fehlend = sql("SELECT region, AVG(zufriedenheit) FROM absatz GROUP BY region")
+    llm = FakeLLM(fehlend, fehlend, sql(RICHTIG))
+
+    with pytest.raises(SqlFehler, match="nicht berechenbar: Sie braucht zufriedenheit"):
+        erzeuge_sql(kpi, schema, "absatz", llm, db)
+    assert len(llm.aufrufe) == 2  # kein dritter Versuch mit einer Ersatzspalte
+
+
+def test_tippfehler_fuehrt_nicht_zur_ablehnung(kpi, schema, db):
+    tippfehler = sql("SELECT regoin, SUM(umsatz) FROM absatz GROUP BY regoin")  # ähnelt region: Reparatur statt Ablehnung
+    llm = FakeLLM(tippfehler, tippfehler, sql(RICHTIG))
+
+    assert erzeuge_sql(kpi, schema, "absatz", llm, db) == RICHTIG

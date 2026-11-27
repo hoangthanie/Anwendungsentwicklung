@@ -80,3 +80,63 @@ Aus den Probeläufen 7–10 und dem Review zum PR für 5.6 und 5.7 sind umgesetz
 - **(a) Einzelwert = genau eine Spalte** (Schicht 5): Liefert die äußerste Abfrage ohne GROUP BY nur Aggregate in mehreren Spalten, wird sie abgelehnt. Die Läufe 7 und 10 wären damit in die Reparaturschleife und danach in die Eskalation gegangen. Gruppierte Ergebnisse und Bezeichnung plus Wert betrifft die Regel nicht.
 - **(b) Wiederholtes SQL:** Liefert das Modell ein SQL, das schon einmal abgelehnt wurde, steht das ausdrücklich im nächsten Prompt. Damit ändert sich der Prompt, und mit temperature 0 kann sich auch die Antwort ändern.
 - **Protokoll:** Jeder geprüfte Versuch steht mit SQL, Ergebnis und Meldung im Run-Protokoll (`"art": "pruefung"`). Fehlversuche lassen sich so nachträglich nachvollziehen (Messreihe 8.3).
+
+## Nachtrag 27.11.2026: Messung mit dem Testset (Messung 1)
+Mit `tools/messung_sql.py` liefen 15 KPIs mit Referenzwerten (9 Sales, 6 Aktivitätsmonitor; 7 einfach, 5 mittel, 3 schwer, davon eine nicht berechenbar) durch Schritt 2, je Modell einmal, temperature 0, Stand der Prüfschichten nach dem ersten Nachtrag vom 27.11.
+
+| Modell | richtig | einfach | mittel | schwer | falsch | Abbruch | Tokens rein / raus |
+|---|---|---|---|---|---|---|---|
+| qwen3:8b | 10/15 | 7/7 | 3/5 | 0/3 | 5 | 0 | 16.950 / 1.261 |
+| qwen3:14b | 9/15 | 7/7 | 2/5 | 0/3 | 4 | 2 | 20.140 / 1.842 |
+| qwen3:30b-a3b | 12/15 | 7/7 | 4/5 | 1/3 | 2 | 1 | 17.051 / 1.523 |
+| qwen3.5:35b-a3b | 14/15 | 7/7 | 5/5 | 2/3 | 1 | 0 | 11.600 / 936 |
+| qwen3:8b, Eskalation an qwen3.5:35b-a3b | 10/15 | 7/7 | 3/5 | 0/3 | 5 | 0 | 16.950 / 1.261 |
+
+**Befunde**
+- **Eskalation hilft nicht gegen stille Fehler.** Die letzte Zeile ist identisch mit der ersten: Alle Fehler von qwen3:8b bestanden sämtliche Schichten, eskaliert wird aber nur, wenn alle Versuche scheitern.
+- **qwen3.5:35b-a3b** löst am meisten und braucht die wenigsten Tokens, weil es fast nie einen zweiten Versuch braucht; je KPI rund 1,5–2 s statt 0,7–1 s bei qwen3:8b (Modellwahl: siehe ADR 0010).
+- **Fehlerarten** (alle 22 Fehlschläge, SQL aus dem Run-Protokoll):
+
+| Fehlerart | Modelle | durch Prüfung abfangbar? |
+|---|---|---|
+| äußere Abfrage ohne `FROM` („no such column“, 3 Abbrüche; die Logik war sonst richtig) | 14b | ja, Schicht „FROM“ (unten) |
+| Beschriftung als zusätzliche Spalte (`'Anteil Region Nord' AS kpi`), die Kachel zeigt den Text | 14b | ja, Einzelwert-Schicht erweitert |
+| Division zweier ganzer Zahlen (`COUNT(…) / COUNT(…)` = 0) | 8b, 14b | ja, Schicht „Ganzzahl“ |
+| Selbstdivision mit Faktor (`SUM(x) * 1.0 / SUM(x) * 1.0` = 1) | 30b | ja, Selbstdivision erkennt Faktoren |
+| Ersatzspalte statt Ablehnung (`AVG(umsatz)` für die Kundenzufriedenheit) – ausgelöst durch die eigene Meldung, die alle erlaubten Spalten aufzählte | 8b, 30b | ja, Meldung verlangt jetzt Ablehnung |
+| falscher Zeitraum oder falsche Körnung (Quartal als Monat oder Woche, „jüngster Monat“ als ganze Reihe) | 8b, 14b, 35b | nein, Verständnisfehler |
+| Zähler und Nenner vertauscht | 8b | nein, Verständnisfehler |
+| ungefragte Aufschlüsselung (Anteil je Monat statt gesamt) | 8b | nein, Verständnisfehler |
+| ungültiges SQL (Unterabfrage mitten im CASE) | 30b | ehrlicher Abbruch |
+
+**Umgesetzt (Commit nach Messung 1):** Schichten „FROM vorhanden“ und „keine Division zweier ganzer Zahlen“; Einzelwert zählt feste Werte wie Beschriftungen mit; die Selbstdivision erkennt Faktoren wie `* 1.0`; die Meldung zu unbekannten Spalten verlangt, die KPI abzulehnen statt eine andere Spalte zu nehmen. Alle richtigen SQL aus Messung 1 bestehen die neuen Schichten weiterhin, alle Referenzen aus dem Testset ebenso (Test). Die Verständnisfehler bleiben; sie sind das Thema von ADR 0010.
+
+**Einordnung:** ein Lauf je Modell auf einem selbst gebauten Testset mit 15 KPIs. Mit temperature 0 reproduzierbar, aber keine breite Stichprobe.
+
+## Nachtrag 28.11.2026: Messung 2 nach den neuen Schichten
+Gleiches Testset, gleiche Modelle, gleiche Bedingungen, nur mit den Schichten aus dem vorigen Nachtrag.
+
+| Modell | richtig M1 → M2 | stille Fehler M1 → M2 | Abbruch M1 → M2 | Tokens M2 rein / raus |
+|---|---|---|---|---|
+| qwen3:8b | 10 → 11 | 5 → 4 | 0 → 0 | 19.155 / 1.534 |
+| qwen3:14b | 9 → 14 | 4 → 1 | 2 → 0 | 20.147 / 1.755 |
+| qwen3:30b-a3b | 12 → 12 | 2 → 1 | 1 → 2 | 19.157 / 1.801 |
+| qwen3.5:35b-a3b | 14 → 14 | 1 → 1 | 0 → 0 | 11.600 / 936 |
+| qwen3:8b, Eskalation an qwen3.5:35b-a3b | 10 → 11 | 5 → 4 | 0 → 0 | wie qwen3:8b |
+
+Stille Fehler (geprüftes, aber falsches SQL, das im Dashboard landen würde) insgesamt: 12 → 7. Keine richtige Antwort wurde durch die neuen Schichten abgelehnt.
+
+**Wirkung im Einzelnen (aus dem Run-Protokoll):**
+- qwen3:14b: Die FROM-Meldung führte zweimal zur richtigen Korrektur (Zielerreichung, Quartalsvergleich), die Beschriftungs-Prüfung zweimal (Anteil Region Nord, Anteil Meetings), FROM und Ganzzahl nacheinander bei „Aktivität ggü. Vormonat“.
+- qwen3:8b: Die Ganzzahl-Prüfung führte bei „Aktivität ggü. Vormonat“ zum richtigen Ergebnis.
+- qwen3:30b-a3b: Die Selbstdivision mit Faktor wurde erkannt; danach lieferte das Modell ungültiges SQL. Aus einem stillen Fehler (Ergebnis 1,0) wurde ein ehrlicher Abbruch.
+- qwen3.5:35b-a3b: unverändert, keine seiner Antworten war betroffen.
+- Die Eskalation griff wieder nie: Es gab keinen Fall, in dem qwen3:8b dreimal an den Schichten scheiterte.
+
+**Neuer Befund und Folgerung:** qwen3:8b verlangte bei der Kundenzufriedenheit zweimal die fehlende Spalte. Im dritten Versuch stand im Prompt der Hinweis auf das wiederholte SQL („Schreibe eine andere Abfrage“), und das Modell nahm eine Ersatzspalte (`AVG(umsatz)`). Umgesetzt: Verlangt das Modell zweimal dieselbe Spalte, die es nicht gibt und die keiner vorhandenen ähnelt (also kein Tippfehler), wird die KPI als nicht berechenbar abgelehnt. Die Regel kennt keinen Datensatz, sie prüft nur gegen das Schema des jeweiligen Artefakts. Gegenprobe am 28.11.: qwen3:8b lehnt die Kundenzufriedenheit jetzt nach zwei Aufrufen als nicht berechenbar ab (Ergebnis richtig). Eine Übersetzung einzelner Meldungen von sqlglot (z. B. zu unvollständigem CASE) wurde bewusst nicht umgesetzt: Sie hinge am Wortlaut der Bibliothek und behöbe nur einen einzelnen beobachteten Fall.
+
+**Was bleibt:** Die verbleibenden stillen Fehler sind Verständnisfehler: Zähler und Nenner vertauscht (8b), Quartal als Monat bzw. Woche (8b, 35b), Einzelwert als Monatsreihe (14b), ungefragte Aufschlüsselung (8b), Ersatzgröße ohne vorherige Nachfrage (30b). Prüfschichten ohne Wissen über die Absicht können sie nicht erkennen (siehe ADR 0010).
+
+**Folgerung für die Modellwahl (Entscheidung im Jour fixe):** qwen3:14b und qwen3.5:35b-a3b lösen beide 14 von 15. qwen3:14b passt vollständig in 12 GB Grafikspeicher und ist als Fallback ohnehin installiert; qwen3.5:35b-a3b braucht rund 40 % weniger Tokens, lehnt nicht berechenbare KPIs direkt ab und setzt beim Kunden mindestens 32 GB Arbeitsspeicher voraus. Weil die Eskalation stille Fehler nicht abfängt, entscheidet das Hauptmodell für Schritt 2 über die Qualität, nicht das Fallback-Modell.
+
+**Einschränkung – Überanpassung:** Die neuen Schichten sind allgemein formuliert, wurden aber auf genau diesem Testset gefunden und auf denselben 15 KPIs nachgemessen. Die Verbesserung ist deshalb ein Hinweis, kein Beleg. Belastbar wird sie erst mit einem zweiten, unabhängigen Testset, an dem nichts mehr angepasst wird (geplant vor dem Jour fixe).

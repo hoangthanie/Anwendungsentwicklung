@@ -9,7 +9,11 @@ from pipeline.harness.validators import (
     fuehre_aus,
     pruefe_anker,
     pruefe_ausfuehrbar,
+    pruefe_bedeutung,
     pruefe_einzelwert,
+    pruefe_from,
+    pruefe_ganzzahl_division,
+    pruefe_keine_selbstdivision,
     pruefe_tabelle,
     zerlege,
 )
@@ -106,3 +110,70 @@ def test_einzelwert_mit_mehreren_spalten_wird_abgelehnt(sql):
 )
 def test_andere_ergebnisformen_bestehen(sql):
     pruefe_einzelwert(sql)
+
+
+
+# --- Messung 27.11.: Fehler, die alle Schichten bestanden oder unverständlich gemeldet wurden ------------------
+
+
+def test_beschriftung_neben_dem_einzelwert_wird_abgelehnt():  # qwen3:14b, „Anteil Region Nord“
+    sql = "SELECT 'Anteil Region Nord' AS kpi, SUM(CASE WHEN region = 'Nord' THEN umsatz ELSE 0 END) * 100.0 / SUM(umsatz) FROM absatz"
+    with pytest.raises(SqlPruefFehler, match="ohne Beschriftung"):
+        pruefe_einzelwert(sql)
+
+
+def test_fehlendes_from_wird_klar_benannt():  # qwen3:14b, dreimal „no such column: umsatz“
+    sql = (
+        "SELECT (SUM(CASE WHEN datum = (SELECT MAX(datum) FROM absatz) THEN umsatz END)"
+        " / SUM(CASE WHEN datum < (SELECT MAX(datum) FROM absatz) THEN umsatz END)) AS quote"
+    )
+    with pytest.raises(SqlPruefFehler, match="fehlt FROM absatz.*Spalte umsatz"):
+        pruefe_from(sql, "absatz")
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT region, SUM(umsatz) FROM absatz GROUP BY region",
+        "SELECT (SELECT SUM(umsatz) FROM absatz) / (SELECT COUNT(*) FROM absatz) AS schnitt",  # nur Unterabfragen
+        "SELECT 1",
+    ],
+)
+def test_from_ist_vorhanden_oder_nicht_noetig(sql):
+    pruefe_from(sql, "absatz")
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT COUNT(CASE WHEN region = 'Nord' THEN 1 END) / COUNT(*) FROM absatz",  # qwen3:14b
+        "SELECT (SELECT COUNT(*) FROM absatz WHERE region = 'Nord') / (SELECT COUNT(*) FROM absatz) AS quote",  # qwen3:8b
+        "SELECT SUM(menge) / SUM(CASE WHEN region = 'Nord' THEN menge END) FROM absatz",  # Ganzzahl-Spalte
+    ],
+)
+def test_division_zweier_ganzer_zahlen_wird_abgelehnt(sql):
+    with pytest.raises(SqlPruefFehler, match="zwei ganze Zahlen"):
+        pruefe_ganzzahl_division(sql, {"menge"})
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT 1.0 * COUNT(CASE WHEN region = 'Nord' THEN 1 END) / COUNT(*) FROM absatz",
+        "SELECT SUM(umsatz) / SUM(menge) FROM absatz",  # umsatz ist eine Dezimalzahl
+        "SELECT CAST(COUNT(*) AS REAL) / COUNT(DISTINCT region) FROM absatz",
+    ],
+)
+def test_division_mit_kommazahl_besteht(sql):
+    pruefe_ganzzahl_division(sql, {"menge"})
+
+
+def test_selbstdivision_mit_faktor_wird_erkannt():  # qwen3:30b-a3b, Ergebnis immer 1,0
+    sql = "SELECT SUM(CASE WHEN region = 'Nord' THEN 1 ELSE 0 END) * 1.0 / SUM(CASE WHEN region = 'Nord' THEN 1 ELSE 0 END) * 1.0 FROM absatz"
+    with pytest.raises(SqlPruefFehler, match="durch sich selbst"):
+        pruefe_keine_selbstdivision(sql)
+
+
+def test_unbekannte_spalte_verlangt_ablehnung_statt_ersatz():  # qwen3:8b nahm AVG(umsatz) für die Kundenzufriedenheit
+    with pytest.raises(SqlPruefFehler, match="ersetze sie nicht durch eine andere, sondern lehne die KPI ab"):
+        pruefe_bedeutung("SELECT region, AVG(kundenzufriedenheit) FROM absatz GROUP BY region", {"region", "umsatz"})
