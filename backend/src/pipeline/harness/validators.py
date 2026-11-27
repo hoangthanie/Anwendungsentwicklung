@@ -123,6 +123,24 @@ def pruefe_keine_selbstdivision(sql: str) -> None:
 _SYSTEMZEIT = (exp.CurrentDate, exp.CurrentTime, exp.CurrentTimestamp)
 
 
+def pruefe_einzelwert(sql: str) -> None:
+    """Ein einzelner Wert (äußerste Abfrage ohne GROUP BY, nur Aggregate) hat genau eine Ergebnisspalte.
+
+    Der Runner zeigt bei einer Kennzahl die erste Spalte. Liefert die Abfrage zusätzlich Hilfswerte, etwa den Umsatz
+    des Vormonats vor der eigentlichen Quote, stünde der falsche Wert im Dashboard (Probeläufe 7 und 10, ADR 0008).
+    Abfragen mit Gruppierung oder mit Spalten ohne Aggregat (z. B. Bezeichnung plus Wert) betrifft das nicht.
+    """
+    baum = zerlege(sql)
+    if not isinstance(baum, exp.Select) or baum.args.get("group") or len(baum.expressions) < 2:
+        return
+    if all(ausdruck.find(exp.AggFunc) for ausdruck in baum.expressions):
+        namen = ", ".join(a.alias_or_name or a.sql(dialect="sqlite") for a in baum.expressions)
+        raise SqlPruefFehler(
+            f"Die Abfrage berechnet einen einzelnen Wert, liefert aber {len(baum.expressions)} Spalten ({namen}). "
+            "Das Dashboard zeigt davon nur die erste. Gib genau eine Spalte zurück: den Wert, den die KPI beschreibt"
+        )
+
+
 def pruefe_ohne_systemzeit(sql: str) -> None:
     """Das SQL darf das heutige Datum nicht verwenden ('now', CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP).
 

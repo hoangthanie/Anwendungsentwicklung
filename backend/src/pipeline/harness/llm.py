@@ -8,7 +8,8 @@ Was die Klasse tut, und nur das:
 - Format per JSON-Schema erzwingen, wenn eines übergeben wird,
 - Denkmodus ausdrücklich aus (think=False) und feste Ausgabegrenze (ADR 0006),
 - optionaler Fallback: Ist die Antwort abgeschnitten oder kein gültiges JSON, einmal beim Fallback-Modell nachfragen,
-- je Aufruf eine Zeile im Run-Protokoll runs/metrics.jsonl (US-08.3), mit der Kennung des Pipeline-Laufs.
+- je Aufruf eine Zeile im Run-Protokoll runs/metrics.jsonl (US-08.3), mit der Kennung des Pipeline-Laufs
+  ("art": "aufruf"); Schritte mit Prüfung können zusätzlich je Versuch das Ergebnis eintragen ("art": "pruefung").
 
 Ob der INHALT einer Antwort stimmt, prüft der jeweilige Schritt selbst und fragt bei Bedarf erneut nach.
 Deshalb gibt es hier keine eigene Wiederholung.
@@ -66,7 +67,8 @@ class LLM:
         self.fallback_modell = fallback_modell.strip() or None
         self.protokoll = Path(protokoll)
         self.lauf = lauf  # Kennung des Pipeline-Laufs; run.py setzt sie, damit sich jeder Lauf im Protokoll abgrenzen lässt
-        self.client = client or ollama.Client(host=url or os.environ.get("OLLAMA_URL", STANDARD_URL), timeout=TIMEOUT_S)
+        self.url = url or os.environ.get("OLLAMA_URL", "") or STANDARD_URL  # wo das Modell läuft; Schritt 4 nennt es in der Doku
+        self.client = client or ollama.Client(host=self.url, timeout=TIMEOUT_S)
 
     def antworte(
         self,
@@ -102,6 +104,7 @@ class LLM:
         zeile = {
             "zeit": datetime.now().isoformat(timespec="seconds"),
             "lauf": self.lauf,
+            "art": "aufruf",
             "schritt": schritt,
             "versuch": versuch,
             "modell": modell,
@@ -147,6 +150,25 @@ class LLM:
             "gueltiges_json": gueltiges_json if json_schema is not None else None,
         })
         return text, not abgeschnitten and gueltiges_json
+
+    def protokolliere_pruefung(
+        self, schritt: str, versuch: int, sql: str, fehler: str = "", modell: str | None = None
+    ) -> None:
+        """Ergebnis der Prüfung eines Versuchs ins Run-Protokoll: das geprüfte SQL und, falls abgelehnt, die Meldung.
+
+        So lässt sich nachträglich nachvollziehen, woran ein Versuch gescheitert ist (Messreihe 8.3).
+        """
+        self._protokolliere({
+            "zeit": datetime.now().isoformat(timespec="seconds"),
+            "lauf": self.lauf,
+            "art": "pruefung",
+            "schritt": schritt,
+            "versuch": versuch,
+            "modell": modell or self.modell,
+            "ergebnis": "abgelehnt" if fehler else "bestanden",
+            "sql": sql,
+            "fehler": fehler,
+        })
 
     def _protokolliere(self, zeile: dict) -> None:
         self.protokoll.parent.mkdir(parents=True, exist_ok=True)

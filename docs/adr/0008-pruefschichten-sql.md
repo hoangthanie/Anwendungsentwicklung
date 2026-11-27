@@ -74,3 +74,9 @@ Die übrigen drei KPIs des Artefakts waren in allen vier Läufen richtig und ide
 - (e) Quoten zerlegen: Zähler und Nenner als zwei einfache Abfragen, die Division übernimmt der Code (größter Umbau).
 
 Vorschlag: (a) und (b) umsetzen, (c) testen.
+
+## Nachtrag 27.11.2026: umgesetzte Folgerungen
+Aus den Probeläufen 7–10 und dem Review zum PR für 5.6 und 5.7 sind umgesetzt:
+- **(a) Einzelwert = genau eine Spalte** (Schicht 5): Liefert die äußerste Abfrage ohne GROUP BY nur Aggregate in mehreren Spalten, wird sie abgelehnt. Die Läufe 7 und 10 wären damit in die Reparaturschleife und danach in die Eskalation gegangen. Gruppierte Ergebnisse und Bezeichnung plus Wert betrifft die Regel nicht.
+- **(b) Wiederholtes SQL:** Liefert das Modell ein SQL, das schon einmal abgelehnt wurde, steht das ausdrücklich im nächsten Prompt. Damit ändert sich der Prompt, und mit temperature 0 kann sich auch die Antwort ändern.
+- **Protokoll:** Jeder geprüfte Versuch steht mit SQL, Ergebnis und Meldung im Run-Protokoll (`"art": "pruefung"`). Fehlversuche lassen sich so nachträglich nachvollziehen (Messreihe 8.3).

@@ -87,7 +87,22 @@ def test_jeder_aufruf_wird_protokolliert(protokoll):  # US-08.3
     assert zeile["tokens_out"] == 27
     assert zeile["dauer_s"] == 0.4
     assert zeile["fallback"] is False
+    assert zeile["art"] == "aufruf"
     assert "zeit" in zeile
+
+
+def test_pruefung_eines_versuchs_wird_protokolliert(protokoll):  # Messreihe 8.3: warum ein Versuch scheiterte
+    llm = LLM(modell="qwen3:8b", fallback_modell="", protokoll=protokoll, client=FakeOllama(), lauf="l1")
+
+    llm.protokolliere_pruefung("query", 2, "SELECT regoin FROM absatz", fehler="Unbekannte Spalte: regoin")
+    llm.protokolliere_pruefung("query", 3, "SELECT region FROM absatz", modell="qwen3:14b")
+
+    abgelehnt, bestanden = zeilen(protokoll)
+    assert abgelehnt["art"] == "pruefung" and abgelehnt["lauf"] == "l1" and abgelehnt["modell"] == "qwen3:8b"
+    assert (abgelehnt["ergebnis"], abgelehnt["sql"], abgelehnt["fehler"]) == (
+        "abgelehnt", "SELECT regoin FROM absatz", "Unbekannte Spalte: regoin"
+    )
+    assert (bestanden["ergebnis"], bestanden["modell"], bestanden["fehler"]) == ("bestanden", "qwen3:14b", "")
 
 
 def test_lauf_kennung_steht_in_jeder_zeile(protokoll):  # US-08.3: Läufe im Protokoll voneinander abgrenzen

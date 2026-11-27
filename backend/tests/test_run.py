@@ -44,3 +44,12 @@ def test_cli_meldet_ungueltiges_artefakt(tmp_path, csv, capsys):
     assert "Fehlgeschlagen: Artefakt prüfen" in fehler
     assert "artefakt.yaml" in fehler  # sagt, was fehlt
     assert "Was tun:" in fehler
+
+
+def test_falscher_artefakt_pfad_nennt_den_ordner(tmp_path, csv, capsys):
+    code = main([str(tmp_path / "gibtsnicht"), str(csv)], llm=KeinModell())
+
+    fehler = capsys.readouterr().err
+    assert code == 1
+    assert f"Im Ordner {(tmp_path / 'gibtsnicht').resolve()} gibt es keine artefakt.yaml" in fehler
+    assert "Prüfen Sie den Pfad zum Artefakt-Ordner" in fehler

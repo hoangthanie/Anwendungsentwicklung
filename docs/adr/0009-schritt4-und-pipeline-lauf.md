@@ -47,3 +47,9 @@ Wir wählen **A2, B2, C2, D2, E2 und F2**.
 - Tests: 102 Backend-Tests grün (vorher 74), darunter Fehlschlag in Schritt 2 ohne Paket und Überschreiben erst nach Erfolg
 - Probelauf 24.11.2026 (`dashframe-run`, Sales-Artefakt, Demo-Daten mit 192 Zeilen, qwen3:8b): Paket in 16 Sekunden, 7 Modellaufrufe, 5.924 Tokens Eingabe und 1.141 Ausgabe, alle Protokollzeilen mit derselben Lauf-Kennung. Drei von vier KPIs richtig; „Zielerreichung ggü. Vorperiode“ falsch (ADR 0008, Nachtrag, Probeläufe 7–10). Die Doku nennt Zweck, Zielgruppe, Datei, Zeilenzahl und Zeitraum korrekt; bei der falschen KPI beschreibt der Erklärtext die Vorgabe statt des SQL. Das bestätigt die bekannte Grenze oben: Vorgabe und SQL stehen deshalb immer daneben
 - Fehlschlag in Probelauf 9 (qwen3:14b): kein Paket, Meldung mit Schritt, Grund und Hinweis, wie unter Entscheidung 2 und 3 vorgesehen
+
+## Nachtrag 27.11.2026: Hinweise aus dem Review zum PR für 5.6 und 5.7
+- Der Satz zum Ort des Sprachmodells hängt jetzt von `OLLAMA_URL` ab: Bei `localhost` heißt es „kein Cloud-Dienst“, bei einem anderen Rechner wird dieser genannt, zusammen mit dem, was dorthin übertragen wurde (Angaben aus dem Artefakt und einige Beispielwerte, nicht die vollständigen Daten). Ist die Adresse unbekannt, steht dazu nichts.
+- Die Erklärtexte je KPI sind als „vom Sprachmodell formuliert“ gekennzeichnet.
+- Kann das fertige Paket nicht an seinen Platz verschoben werden (unter Windows z. B., weil ein laufendes Dashboard eine Datei offen hält), kommt das als PipelineFehler mit Hinweis statt als Absturz. Das vorhandene Paket bleibt erhalten.
+- Ein falscher Pfad zum Artefakt-Ordner wird mit dem vollständigen Ordner gemeldet, in dem gesucht wurde.

@@ -7,9 +7,13 @@ Arbeitsteilung: Das MODELL schreibt das SQL. Der CODE prüft es, bevor es weiter
   d) Bedeutung  – die Spalten aus der KPI-Beschreibung (in Backticks) kommen im SQL vor
   d2) Zeitbezug – kein heutiges Datum ('now', CURRENT_DATE): "aktuell" bezieht sich auf die Daten, nicht auf den Kalender
   d3) Division  – Zähler und Nenner sind nicht derselbe Ausdruck (Ergebnis wäre immer 1)
+  d4) Einzelwert – eine einzelne Zahl hat genau eine Ergebnisspalte (der Runner zeigt die erste)
   e) ausführbar – läuft auf den echten Daten, liefert Zeilen und nicht nur NULL; Zeitreihen aufsteigend
   f) Orakel     – nur wenn Referenzwerte übergeben werden (in den Tests, US-05.3)
 Scheitert eine Schicht, bekommt das Modell die Meldung zurück und versucht es erneut (Reparaturschleife, US-05.4).
+Liefert es ein SQL, das schon einmal gescheitert ist, erfährt es das ausdrücklich: Mit temperature 0 wäre der nächste
+Prompt sonst Wort für Wort derselbe und damit auch die Antwort (Probelauf 9, ADR 0008).
+Jeder geprüfte Versuch steht mit SQL und Meldung im Run-Protokoll, wenn das llm das anbietet (protokolliere_pruefung).
 Lehnt das Modell eine KPI begründet ab, gibt es keinen weiteren Versuch: das ist eine Antwort, kein Fehler.
 Scheitert das Hauptmodell max_versuche-mal, bekommt einmal das Fallback-Modell (z. B. qwen3:14b) die Aufgabe mit dem
 letzten SQL und der letzten Fehlermeldung (Eskalation, ADR 0008). Erst wenn auch das scheitert, bricht der Schritt ab.
@@ -31,6 +35,7 @@ from pipeline.harness.validators import (
     pruefe_anker,
     pruefe_ausfuehrbar,
     pruefe_bedeutung,
+    pruefe_einzelwert,
     pruefe_keine_selbstdivision,
     pruefe_ohne_systemzeit,
     pruefe_plausibilitaet,
@@ -160,6 +165,7 @@ def pruefe_sql(
     pruefe_anker(sql, kpi.referenzierte_spalten)
     pruefe_ohne_systemzeit(sql)
     pruefe_keine_selbstdivision(sql)
+    pruefe_einzelwert(sql)
     spalten, zeilen = pruefe_ausfuehrbar(sql, db_pfad)
     pruefe_zeitreihe_aufsteigend(spalten, zeilen)
     if erwartet:
@@ -194,6 +200,8 @@ def erzeuge_sql(
     if fallback == getattr(llm, "modell", None):
         fallback = None
     fallback_fehler = ""  # gesetzt, wenn das Fallback-Modell gar nicht antworten konnte (z. B. nicht installiert)
+    gescheitert: set[str] = set()  # bereits abgelehnte SQL (normalisiert), um Wiederholungen zu erkennen
+    notiere = getattr(llm, "protokolliere_pruefung", None)  # Fakes in Tests müssen das nicht anbieten
     plan = [(nr, None) for nr in range(1, versuche + 1)]
     if fallback:
         plan.append((versuche + 1, fallback))  # Eskalation: Aufgabe samt letztem Fehler an das größere Modell
@@ -218,13 +226,29 @@ def erzeuge_sql(
             if not sql:
                 raise SqlPruefFehler('Weder "sql" noch "ablehnung" ist ausgefüllt')
             pruefe_sql(sql, kpi, schema, tabelle, db_pfad, erwartet)
+            if notiere:
+                notiere(SCHRITT, versuch, sql, modell=modell)
             return sql
         except (SqlPruefFehler, ValueError) as fehler:
             if isinstance(fehler, SqlFehler):
                 raise
             letzter_fehler = str(fehler)
+            if notiere:
+                notiere(SCHRITT, versuch, sql, fehler=letzter_fehler, modell=modell)
+            normal = " ".join(sql.lower().split())
+            wiederholt = bool(sql) and normal in gescheitert
+            gescheitert.add(normal)
             vorher = f"Dein letztes SQL war:\n{sql}\n" if sql else ""
-            prompt = f"{basis}\n\n{vorher}Es ist ungültig: {letzter_fehler}\nKorrigiere es und antworte erneut nur mit JSON."
+            hinweis = (
+                "Dieses SQL hast du schon in einem früheren Versuch geliefert, es ist weiterhin ungültig. "
+                "Schreibe eine andere Abfrage.\n"
+                if wiederholt
+                else ""
+            )
+            prompt = (
+                f"{basis}\n\n{vorher}Es ist ungültig: {letzter_fehler}\n{hinweis}"
+                "Korrigiere es und antworte erneut nur mit JSON."
+            )
     if fallback_fehler:
         zusatz = f". Das Fallback-Modell {fallback} konnte nicht helfen, weil es nicht verfügbar war: {fallback_fehler}"
     elif fallback:

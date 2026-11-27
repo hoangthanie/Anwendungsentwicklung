@@ -144,8 +144,12 @@ def test_jeder_llm_aufruf_wird_protokolliert(artefakt_ordner, csv, tmp_path):
 
     pipeline(artefakt_ordner, csv, tmp_path / "ausgabe", llm=llm)
 
-    zeilen = [json.loads(z) for z in protokoll.read_text(encoding="utf-8").splitlines()]
+    alle = [json.loads(z) for z in protokoll.read_text(encoding="utf-8").splitlines()]
+    zeilen = [z for z in alle if z["art"] == "aufruf"]
     assert [z["schritt"] for z in zeilen] == ["query", "query", "dashboard", "doku"]
+    pruefungen = [z for z in alle if z["art"] == "pruefung"]  # je geprüftem SQL eine Zeile, mit dem SQL selbst
+    assert [(z["ergebnis"], z["sql"]) for z in pruefungen] == [("bestanden", SQL_REGION), ("bestanden", SQL_VERLAUF)]
+    assert len({z["lauf"] for z in alle}) == 1
     for zeile in zeilen:
         assert {"zeit", "lauf", "schritt", "versuch", "tokens_in", "tokens_out", "dauer_s"} <= zeile.keys()
     assert len({z["lauf"] for z in zeilen}) == 1 and zeilen[0]["lauf"].endswith("_sales")
@@ -212,3 +216,18 @@ def test_fehlende_datendatei_wird_vor_dem_modell_gemeldet(artefakt_ordner, tmp_p
     with pytest.raises(PipelineFehler, match="Datendatei nicht gefunden"):
         pipeline(artefakt_ordner, tmp_path / "gibtsnicht.csv", tmp_path / "ausgabe", llm=llm)
     assert llm.aufrufe == []
+
+
+def test_gesperrtes_paket_wird_verstaendlich_gemeldet(artefakt_ordner, csv, tmp_path, monkeypatch):
+    def gesperrt(arbeit, ziel):  # wie unter Windows, wenn ein laufendes Dashboard eine Datei offen hält
+        raise PermissionError("[WinError 32] Die Datei wird von einem anderen Prozess verwendet")
+
+    monkeypatch.setattr("pipeline.run._einsetzen", gesperrt)
+    ausgabe = tmp_path / "ausgabe"
+
+    with pytest.raises(PipelineFehler) as fehler:
+        pipeline(artefakt_ordner, csv, ausgabe, llm=FakeLLM(ANTWORTEN))
+
+    assert fehler.value.schritt == "Paket speichern"
+    assert "WinError 32" in fehler.value.meldungen[0] and "laufendes Dashboard" in fehler.value.hinweis
+    assert reste(ausgabe) == []  # Arbeitsordner aufgeräumt

@@ -9,6 +9,7 @@ from pipeline.harness.validators import (
     fuehre_aus,
     pruefe_anker,
     pruefe_ausfuehrbar,
+    pruefe_einzelwert,
     pruefe_tabelle,
     zerlege,
 )
@@ -72,3 +73,36 @@ def test_endlose_abfrage_wird_nach_dem_zeitlimit_abgebrochen(db):
     endlos = "WITH RECURSIVE z(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM z) SELECT COUNT(*) FROM z"
     with pytest.raises(SqlPruefFehler, match="länger als 0.2 Sekunden"):
         fuehre_aus(endlos, db, zeitlimit_s=0.2)
+
+
+# --- Einzelwert = genau eine Spalte (Probeläufe 7 und 10, ADR 0008) ----------------------------------
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        # Lauf 7: Vormonat, Jahresumsatz und Quote nebeneinander; die Kachel zeigte die erste Spalte
+        (
+            "SELECT SUM(CASE WHEN region = 'Nord' THEN umsatz END) AS vormonat, SUM(umsatz) AS gesamt, "
+            "SUM(umsatz) / SUM(CASE WHEN region = 'Nord' THEN umsatz END) AS quote FROM absatz"
+        ),
+        # Lauf 10: zwei Summen, keine Quote
+        "SELECT SUM(umsatz) AS aktuell, SUM(CASE WHEN region = 'Nord' THEN umsatz END) AS vorher FROM absatz",
+    ],
+)
+def test_einzelwert_mit_mehreren_spalten_wird_abgelehnt(sql):
+    with pytest.raises(SqlPruefFehler, match="genau eine Spalte"):
+        pruefe_einzelwert(sql)
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT SUM(umsatz) / (SELECT SUM(umsatz) FROM absatz WHERE region = 'Nord') AS quote FROM absatz",  # Lauf 12
+        "SELECT region, SUM(umsatz) AS summe FROM absatz GROUP BY region",  # gruppiert, auch wenn nur eine Gruppe
+        "SELECT region, umsatz FROM absatz ORDER BY umsatz DESC LIMIT 1",  # Bezeichnung plus Wert, kein Aggregat
+        "WITH t AS (SELECT region, SUM(umsatz) AS s FROM absatz GROUP BY region) SELECT region, s FROM t",
+    ],
+)
+def test_andere_ergebnisformen_bestehen(sql):
+    pruefe_einzelwert(sql)
