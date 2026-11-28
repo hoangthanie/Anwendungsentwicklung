@@ -7,9 +7,16 @@ Arbeitsteilung: Das MODELL schreibt das SQL. Der CODE prüft es, bevor es weiter
   d) Bedeutung  – die Spalten aus der KPI-Beschreibung (in Backticks) kommen im SQL vor
   d2) Zeitbezug – kein heutiges Datum ('now', CURRENT_DATE): "aktuell" bezieht sich auf die Daten, nicht auf den Kalender
   d3) Division  – Zähler und Nenner sind nicht derselbe Ausdruck (Ergebnis wäre immer 1)
+  d4) Einzelwert – eine einzelne Zahl hat genau eine Ergebnisspalte (der Runner zeigt die erste)
+  d5) Ganzzahl   – keine Division zweier ganzer Zahlen (SQLite schneidet die Nachkommastellen ab)
   e) ausführbar – läuft auf den echten Daten, liefert Zeilen und nicht nur NULL; Zeitreihen aufsteigend
   f) Orakel     – nur wenn Referenzwerte übergeben werden (in den Tests, US-05.3)
 Scheitert eine Schicht, bekommt das Modell die Meldung zurück und versucht es erneut (Reparaturschleife, US-05.4).
+Liefert es ein SQL, das schon einmal gescheitert ist, erfährt es das ausdrücklich: Mit temperature 0 wäre der nächste
+Prompt sonst Wort für Wort derselbe und damit auch die Antwort (Probelauf 9, ADR 0008). Verlangt es zweimal dieselbe
+Spalte, die es nicht gibt (und die keiner vorhandenen ähnelt), wird die KPI als nicht berechenbar abgelehnt, statt im
+nächsten Versuch eine Ersatzspalte zu riskieren (Messung 2, ADR 0008).
+Jeder geprüfte Versuch steht mit SQL und Meldung im Run-Protokoll, wenn das llm das anbietet (protokolliere_pruefung).
 Lehnt das Modell eine KPI begründet ab, gibt es keinen weiteren Versuch: das ist eine Antwort, kein Fehler.
 Scheitert das Hauptmodell max_versuche-mal, bekommt einmal das Fallback-Modell (z. B. qwen3:14b) die Aufgabe mit dem
 letzten SQL und der letzten Fehlermeldung (Eskalation, ADR 0008). Erst wenn auch das scheitert, bricht der Schritt ab.
@@ -28,9 +35,13 @@ from dashboard_framework.runner.sicherheit import UnsicheresSql, pruefe_nur_lese
 from pipeline.harness.llm import LLMFehler
 from pipeline.harness.validators import (
     SqlPruefFehler,
+    UnbekannteSpalten,
     pruefe_anker,
     pruefe_ausfuehrbar,
     pruefe_bedeutung,
+    pruefe_einzelwert,
+    pruefe_from,
+    pruefe_ganzzahl_division,
     pruefe_keine_selbstdivision,
     pruefe_ohne_systemzeit,
     pruefe_plausibilitaet,
@@ -156,10 +167,13 @@ def pruefe_sql(
     except UnsicheresSql as fehler:
         raise SqlPruefFehler(f"Nicht erlaubt: {fehler}") from None
     pruefe_tabelle(zerlege(sql), tabelle)
+    pruefe_from(sql, tabelle)
     pruefe_bedeutung(sql, {s.name for s in schema})
     pruefe_anker(sql, kpi.referenzierte_spalten)
     pruefe_ohne_systemzeit(sql)
     pruefe_keine_selbstdivision(sql)
+    pruefe_ganzzahl_division(sql, {s.name for s in schema if s.typ.upper() == "INTEGER"})
+    pruefe_einzelwert(sql)
     spalten, zeilen = pruefe_ausfuehrbar(sql, db_pfad)
     pruefe_zeitreihe_aufsteigend(spalten, zeilen)
     if erwartet:
@@ -194,6 +208,9 @@ def erzeuge_sql(
     if fallback == getattr(llm, "modell", None):
         fallback = None
     fallback_fehler = ""  # gesetzt, wenn das Fallback-Modell gar nicht antworten konnte (z. B. nicht installiert)
+    gescheitert: set[str] = set()  # bereits abgelehnte SQL (normalisiert), um Wiederholungen zu erkennen
+    fehlende: dict[str, int] = {}  # wie oft das Modell eine Spalte verlangt hat, die es in den Daten nicht gibt
+    notiere = getattr(llm, "protokolliere_pruefung", None)  # Fakes in Tests müssen das nicht anbieten
     plan = [(nr, None) for nr in range(1, versuche + 1)]
     if fallback:
         plan.append((versuche + 1, fallback))  # Eskalation: Aufgabe samt letztem Fehler an das größere Modell
@@ -218,13 +235,40 @@ def erzeuge_sql(
             if not sql:
                 raise SqlPruefFehler('Weder "sql" noch "ablehnung" ist ausgefüllt')
             pruefe_sql(sql, kpi, schema, tabelle, db_pfad, erwartet)
+            if notiere:
+                notiere(SCHRITT, versuch, sql, modell=modell)
             return sql
         except (SqlPruefFehler, ValueError) as fehler:
             if isinstance(fehler, SqlFehler):
                 raise
             letzter_fehler = str(fehler)
+            if notiere:
+                notiere(SCHRITT, versuch, sql, fehler=letzter_fehler, modell=modell)
+            if isinstance(fehler, UnbekannteSpalten):
+                for name in fehler.ohne_vorschlag:
+                    fehlende[name] = fehlende.get(name, 0) + 1
+                beharrlich = sorted(name for name, anzahl in fehlende.items() if anzahl >= 2)
+                if beharrlich:
+                    # Zweimal dieselbe Spalte, die es nicht gibt (kein Tippfehler): Die KPI braucht offenbar Daten, die
+                    # fehlen. Ehrlich ablehnen, statt im nächsten Versuch eine Ersatzspalte zu riskieren (Messung 2).
+                    raise SqlFehler(
+                        f"KPI '{kpi.name}' ist mit den vorhandenen Daten nicht berechenbar: Sie braucht "
+                        f"{', '.join(beharrlich)}, das gibt es in den Daten nicht"
+                    ) from None
+            normal = " ".join(sql.lower().split())
+            wiederholt = bool(sql) and normal in gescheitert
+            gescheitert.add(normal)
             vorher = f"Dein letztes SQL war:\n{sql}\n" if sql else ""
-            prompt = f"{basis}\n\n{vorher}Es ist ungültig: {letzter_fehler}\nKorrigiere es und antworte erneut nur mit JSON."
+            hinweis = (
+                "Dieses SQL hast du schon in einem früheren Versuch geliefert, es ist weiterhin ungültig. "
+                "Schreibe eine andere Abfrage.\n"
+                if wiederholt
+                else ""
+            )
+            prompt = (
+                f"{basis}\n\n{vorher}Es ist ungültig: {letzter_fehler}\n{hinweis}"
+                "Korrigiere es und antworte erneut nur mit JSON."
+            )
     if fallback_fehler:
         zusatz = f". Das Fallback-Modell {fallback} konnte nicht helfen, weil es nicht verfügbar war: {fallback_fehler}"
     elif fallback:

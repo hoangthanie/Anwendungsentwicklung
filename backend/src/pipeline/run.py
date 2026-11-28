@@ -100,6 +100,12 @@ def pipeline(
     ordner, csv, ausgabe = Path(artefakt_ordner), Path(csv_pfad), Path(ausgabe)
 
     # Alles, was ohne Sprachmodell prüfbar ist, zuerst: Ein Fehler hier kostet keine Minute Rechenzeit (US-08.2).
+    if not (ordner / "artefakt.yaml").is_file():
+        raise PipelineFehler(
+            "Artefakt prüfen",
+            f"Im Ordner {ordner.resolve()} gibt es keine artefakt.yaml",
+            "Prüfen Sie den Pfad zum Artefakt-Ordner (im Terminal: relativ zum Ordner, in dem Sie den Befehl starten).",
+        )
     try:
         artefakt = Artefakt.aus_yaml(ordner / "artefakt.yaml")
     except ArtefaktFehler as fehler:
@@ -152,7 +158,15 @@ def pipeline(
         config.speichern(arbeit / "dashboard.json")
         (arbeit / "README.md").write_text(doku, encoding="utf-8")
 
-        _einsetzen(arbeit, ziel)
+        try:
+            _einsetzen(arbeit, ziel)
+        except OSError as fehler:  # z. B. unter Windows: eine Datei im alten Paket ist noch geöffnet
+            raise PipelineFehler(
+                "Paket speichern",
+                f"Das fertige Paket konnte nicht nach {ziel} verschoben werden: {fehler}",
+                "Schließen Sie Programme, die Dateien aus diesem Ordner geöffnet haben (z. B. ein laufendes Dashboard), "
+                "und starten Sie erneut.",
+            ) from None
     except SchemaFehler as fehler:
         raise PipelineFehler(schritt, fehler.meldungen, HINWEIS_DATEN) from None
     except SqlFehler as fehler:

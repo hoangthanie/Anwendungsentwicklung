@@ -413,3 +413,58 @@ def test_fehlendes_fallback_modell_bricht_sauber_ab(kpi, schema, db):
     meldung = str(fehler.value)
     assert "nicht verfügbar war: Modell nicht installiert" in meldung  # ehrlich: das Fallback-Modell hat es nie versucht
     assert "auch nicht mit dem Fallback-Modell" not in meldung
+
+
+# --- Wiederholung erkennen, Prüfungen protokollieren (Review zum PR für 5.6 und 5.7, ADR 0008) -------------------
+
+
+def test_wiederholtes_sql_wird_dem_modell_gemeldet(kpi, schema, db):
+    llm = FakeLLM(FALSCH, FALSCH, sql(RICHTIG))
+
+    assert erzeuge_sql(kpi, schema, "absatz", llm, db) == RICHTIG
+    assert "schon in einem früheren Versuch" not in llm.aufrufe[1]["prompt"]  # erster Fehlschlag: normale Meldung
+    assert "schon in einem früheren Versuch" in llm.aufrufe[2]["prompt"]  # gleiches SQL noch einmal: anderer Prompt
+
+
+def test_einzelwert_mit_hilfsspalten_landet_in_der_reparaturschleife(artefakt, schema, db):
+    kpi = artefakt.kpis[0]
+    mehrspaltig = "SELECT SUM(umsatz) AS gesamt, COUNT(*) AS anzahl FROM absatz"
+    llm = FakeLLM(sql(mehrspaltig), sql(RICHTIG))
+
+    assert erzeuge_sql(kpi, schema, "absatz", llm, db) == RICHTIG
+    assert "genau eine Spalte" in llm.aufrufe[1]["prompt"]
+
+
+class ProtokollierendesLLM(FakeLLM):
+    def __init__(self, *antworten, **kwargs):
+        super().__init__(*antworten, **kwargs)
+        self.pruefungen: list[dict] = []
+
+    def protokolliere_pruefung(self, schritt, versuch, sql, fehler="", modell=None):
+        self.pruefungen.append({"schritt": schritt, "versuch": versuch, "sql": sql, "fehler": fehler, "modell": modell})
+
+
+def test_jeder_versuch_steht_mit_sql_und_meldung_im_protokoll(kpi, schema, db):
+    llm = ProtokollierendesLLM(FALSCH, FALSCH, FALSCH, sql(RICHTIG), fallback_modell="qwen3:14b")
+
+    assert erzeuge_sql(kpi, schema, "absatz", llm, db) == RICHTIG
+    assert [(p["versuch"], p["modell"], bool(p["fehler"])) for p in llm.pruefungen] == [
+        (1, None, True), (2, None, True), (3, None, True), (4, "qwen3:14b", False)
+    ]
+    assert llm.pruefungen[0]["sql"].startswith("SELECT regoin") and "Unbekannte Spalte" in llm.pruefungen[0]["fehler"]
+
+
+def test_zweimal_dieselbe_fehlende_spalte_fuehrt_zur_ablehnung(kpi, schema, db):  # Messung 2: sonst Ersatzspalte
+    fehlend = sql("SELECT region, AVG(zufriedenheit) FROM absatz GROUP BY region")
+    llm = FakeLLM(fehlend, fehlend, sql(RICHTIG))
+
+    with pytest.raises(SqlFehler, match="nicht berechenbar: Sie braucht zufriedenheit"):
+        erzeuge_sql(kpi, schema, "absatz", llm, db)
+    assert len(llm.aufrufe) == 2  # kein dritter Versuch mit einer Ersatzspalte
+
+
+def test_tippfehler_fuehrt_nicht_zur_ablehnung(kpi, schema, db):
+    tippfehler = sql("SELECT regoin, SUM(umsatz) FROM absatz GROUP BY regoin")  # ähnelt region: Reparatur statt Ablehnung
+    llm = FakeLLM(tippfehler, tippfehler, sql(RICHTIG))
+
+    assert erzeuge_sql(kpi, schema, "absatz", llm, db) == RICHTIG

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlparse
 
 from dashboard_framework.harness.dashboard import extrahiere_json
 from dashboard_framework.models.artefakt import Artefakt
@@ -37,6 +38,8 @@ DARSTELLUNG = {
     "kennzahl": "einzelne Zahl",
 }
 OHNE_ERKLAERUNG = "*Für diese Kennzahl liegt keine Erklärung in einfachen Worten vor. Maßgeblich sind Ihre Vorgabe und die Abfrage.*"
+VOM_MODELL = "*Diese beiden Erklärungen hat das Sprachmodell formuliert. Maßgeblich sind Ihre Vorgabe und die Abfrage.*"
+LOKALE_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
 
 
 def antwort_schema(kpi_namen: list[str]) -> dict:
@@ -147,6 +150,14 @@ def _zelle(text: str) -> str:
     return " ".join(text.replace("|", "/").split()) or "–"
 
 
+def wo_lief_das_modell(url: str | None) -> tuple[bool | None, str]:
+    """(lokal?, Rechnername) aus der Ollama-Adresse. Ohne Adresse (z. B. im Test) ist nichts bekannt: (None, "")."""
+    if not url:
+        return None, ""
+    host = urlparse(url if "://" in url else f"http://{url}").hostname or ""
+    return host.lower() in LOKALE_HOSTS, host
+
+
 def _zahl(wert: int) -> str:
     return f"{wert:,}".replace(",", ".")
 
@@ -208,7 +219,7 @@ def erzeuge_doku(
         z += [f"### {nr}. {kpi.name}", ""]
         if kpi.name in texte:
             aussage, berechnung = texte[kpi.name]
-            z += [f"**Was zeigt sie?** {aussage}", "", f"**Wie wird sie berechnet?** {berechnung}", ""]
+            z += [f"**Was zeigt sie?** {aussage}", "", f"**Wie wird sie berechnet?** {berechnung}", "", VOM_MODELL, ""]
         else:
             z += [OHNE_ERKLAERUNG, ""]
         z += [f"**Ihre Vorgabe:** {kpi.beschreibung}", ""]
@@ -216,7 +227,21 @@ def erzeuge_doku(
             z += [f"**Darstellung:** {DARSTELLUNG[darstellung[kpi.name]]}", ""]
         z += ["Abfrage an die Datenbank (SQL), zum Nachprüfen für Fachleute:", "", "```sql", sql_je_kpi[kpi.name], "```", ""]
 
-    wer = f"Ein lokal betriebenes Sprachmodell ({modell})" if modell else "Ein lokal betriebenes Sprachmodell"
+    lokal, host = wo_lief_das_modell(getattr(llm, "url", None))
+    art = "lokal betriebenes Sprachmodell" if lokal else "Sprachmodell"
+    wer = f"Ein {art} ({modell})" if modell else f"Ein {art}"
+    if lokal:
+        wo = (
+            "Das Sprachmodell lief auf dem Rechner, auf dem das Dashboard erstellt wurde. Ihre Daten wurden an keinen "
+            "Cloud-Dienst übertragen."
+        )
+    elif lokal is False:
+        wo = (
+            f"Das Sprachmodell lief auf dem Rechner {host}. Dorthin übertragen wurden Ihre Angaben (Zweck, Spalten, "
+            "Kennzahlen) und je Spalte einige Beispielwerte, nicht die vollständigen Daten."
+        )
+    else:
+        wo = ""
     eskalation = (
         f" Gelang das nach drei Versuchen nicht, hat ein größeres Modell ({fallback}) die Aufgabe übernommen." if fallback else ""
     )
@@ -246,11 +271,7 @@ def erzeuge_doku(
             "System. Nur die Erklärtexte in einfachen Worten hat das Sprachmodell formuliert."
         ),
         "",
-        (
-            "Das Sprachmodell lief auf dem Rechner, auf dem das Dashboard erstellt wurde. Ihre Daten wurden an keinen "
-            "Cloud-Dienst übertragen."
-        ),
-        "",
+        *([wo, ""] if wo else []),
         "## Gut zu wissen",
         "",
         (

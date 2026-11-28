@@ -12,7 +12,12 @@ from dashboard_framework.models.artefakt import Artefakt
 from dashboard_framework.models.dashboard_config import Chart, DashboardConfig
 
 from pipeline.harness.llm import LLMFehler
-from pipeline.schritte.schritt4_doku import OHNE_ERKLAERUNG, SCHRITT, erzeuge_doku
+from pipeline.schritte.schritt4_doku import (
+    OHNE_ERKLAERUNG,
+    SCHRITT,
+    VOM_MODELL,
+    erzeuge_doku,
+)
 
 SQL = {
     "Umsatz nach Region": "SELECT region, SUM(umsatz) AS summe FROM absatz GROUP BY region",
@@ -21,10 +26,11 @@ SQL = {
 
 
 class FakeLLM:
-    def __init__(self, antwort, modell="qwen3:8b", fallback_modell=None):
+    def __init__(self, antwort, modell="qwen3:8b", fallback_modell=None, url=None):
         self.antwort = antwort
         self.modell = modell
         self.fallback_modell = fallback_modell
+        self.url = url
         self.aufrufe: list[dict] = []
 
     def antworte(self, prompt, schritt, json_schema=None, versuch=1, modell=None):
@@ -167,3 +173,34 @@ def test_unbrauchbare_erklaerung_fehlt_nur_bei_dieser_kpi(artefakt):
 
     assert "Aussage zu Umsatz nach Region." in text
     assert text.count(OHNE_ERKLAERUNG) == 1
+
+
+# --- Review zum PR für 5.6 und 5.7: Kennzeichnung und Ort des Modells ---------------------------------------------------
+
+
+def test_erklaertexte_sind_als_vom_modell_formuliert_gekennzeichnet(artefakt):
+    text = doku(artefakt, FakeLLM(erklaert("Umsatz nach Region")))
+
+    assert text.count(VOM_MODELL) == 1  # nur bei der KPI, die eine Erklärung bekam
+    assert text.index("Aussage zu Umsatz nach Region.") < text.index(VOM_MODELL)
+
+
+@pytest.mark.parametrize("url", ["http://localhost:11434", "http://127.0.0.1:11434", "localhost:11434"])
+def test_lokales_modell_kein_cloud_dienst(artefakt, url):
+    text = doku(artefakt, FakeLLM(erklaert(*SQL), url=url))
+
+    assert "lokal betriebenes Sprachmodell" in text
+    assert "an keinen Cloud-Dienst übertragen" in text
+
+
+def test_entferntes_modell_wird_ehrlich_benannt(artefakt):
+    text = doku(artefakt, FakeLLM(erklaert(*SQL), url="https://gpu.example.org:11434"))
+
+    assert "lokal betriebenes" not in text and "Cloud-Dienst" not in text
+    assert "auf dem Rechner gpu.example.org" in text and "nicht die vollständigen Daten" in text
+
+
+def test_ohne_adresse_keine_aussage_zum_ort(artefakt):
+    text = doku(artefakt, FakeLLM(erklaert(*SQL)))
+
+    assert "Cloud-Dienst" not in text and "auf dem Rechner" not in text

@@ -55,6 +55,33 @@ def pruefe_tabelle(baum: exp.Expression, tabelle: str) -> None:
         raise SqlPruefFehler(f"Unbekannte Tabelle(n): {', '.join(fremd)} – erlaubt ist nur die Tabelle {tabelle}")
 
 
+class UnbekannteSpalten(SqlPruefFehler):
+    """Das SQL verwendet Spalten, die es nicht gibt. ohne_vorschlag: die Namen ohne ähnliche vorhandene Spalte, also
+    kein Tippfehler, sondern etwas, das in den Daten fehlt."""
+
+    def __init__(self, meldung: str, ohne_vorschlag: list[str]):
+        super().__init__(meldung)
+        self.ohne_vorschlag = ohne_vorschlag
+
+
+def _von(select: exp.Select) -> exp.Expression | None:
+    return select.args.get("from_") or select.args.get("from")  # Schlüssel je nach sqlglot-Version
+
+
+def pruefe_from(sql: str, tabelle: str) -> None:
+    """Jede Abfrage, die Spalten liest, braucht ein FROM. Sonst meldet SQLite nur „no such column“, und das Modell
+    sucht den Fehler an der falschen Stelle (Messung 27.11.: qwen3:14b ließ dreimal das äußere FROM weg)."""
+    for select in zerlege(sql).find_all(exp.Select):
+        if _von(select):
+            continue
+        eigene = [c for c in select.find_all(exp.Column) if c.find_ancestor(exp.Select) is select]
+        if eigene:
+            raise SqlPruefFehler(
+                f"Der Abfrage fehlt FROM {tabelle}: Sie liest die Spalte {eigene[0].name}, sagt aber nicht, aus welcher "
+                "Tabelle. Unterabfragen mit eigenem FROM reichen dafür nicht"
+            )
+
+
 def pruefe_bedeutung(sql: str, erlaubte_spalten: set[str]) -> None:
     """US-05.2: Das SQL verwendet nur bekannte Spalten. Eine unbekannte Spalte wird mit ihrem Namen gemeldet."""
     erlaubt = {s.lower() for s in erlaubte_spalten}
@@ -62,12 +89,17 @@ def pruefe_bedeutung(sql: str, erlaubte_spalten: set[str]) -> None:
     # Eigene Aliase (z. B. "ORDER BY summe" nach "SUM(x) AS summe") sind keine Tabellenspalten und deshalb erlaubt.
     unbekannt = sorted(verwendete_spalten(baum) - erlaubt - _eigene_namen(baum))
     if unbekannt:
-        hinweise = []
+        hinweise, ohne_vorschlag = [], []
         for name in unbekannt:
             vorschlag = aehnliche_spalte(name, sorted(erlaubte_spalten))
             hinweise.append(f"{name} (meinten Sie `{vorschlag}`?)" if vorschlag else name)
-        raise SqlPruefFehler(
-            f"Unbekannte Spalte(n): {', '.join(hinweise)} – erlaubt sind: {', '.join(sorted(erlaubte_spalten))}"
+            if not vorschlag:
+                ohne_vorschlag.append(name)
+        raise UnbekannteSpalten(
+            f"Unbekannte Spalte(n): {', '.join(hinweise)} – erlaubt sind: {', '.join(sorted(erlaubte_spalten))}. "
+            "Gibt es für die KPI keine passende Spalte, ersetze sie nicht durch eine andere, sondern lehne die KPI ab "
+            "(sql leer, Begründung in ablehnung)",
+            ohne_vorschlag,
         )
 
 
@@ -100,10 +132,20 @@ def pruefe_anker(sql: str, anker: list[str]) -> None:
 
 
 def _kern(ausdruck: exp.Expression) -> str:
-    """Normalisiert einen Ausdruck für den Vergleich: Klammern, CAST(... AS ...) und NULLIF(..., 0) zählen nicht."""
-    while isinstance(ausdruck, (exp.Paren, exp.Cast, exp.Nullif)):
-        ausdruck = ausdruck.this
-    return ausdruck.sql(dialect="sqlite").lower()
+    """Normalisiert einen Ausdruck für den Vergleich: Klammern, CAST(... AS ...), NULLIF(..., 0) und ein Faktor wie
+    * 1.0 zählen nicht (SUM(x) * 1.0 / SUM(x) ist ebenfalls immer 1)."""
+    while True:
+        if isinstance(ausdruck, (exp.Paren, exp.Cast, exp.Nullif)):
+            ausdruck = ausdruck.this
+            continue
+        if isinstance(ausdruck, exp.Mul):
+            if isinstance(ausdruck.expression, exp.Literal):
+                ausdruck = ausdruck.this
+                continue
+            if isinstance(ausdruck.this, exp.Literal):
+                ausdruck = ausdruck.expression
+                continue
+        return ausdruck.sql(dialect="sqlite").lower()
 
 
 def pruefe_keine_selbstdivision(sql: str) -> None:
@@ -121,6 +163,64 @@ def pruefe_keine_selbstdivision(sql: str) -> None:
 
 
 _SYSTEMZEIT = (exp.CurrentDate, exp.CurrentTime, exp.CurrentTimestamp)
+
+
+def pruefe_einzelwert(sql: str) -> None:
+    """Ein einzelner Wert (äußerste Abfrage ohne GROUP BY, nur Aggregate und feste Werte) hat genau eine Ergebnisspalte.
+
+    Der Runner zeigt bei einer Kennzahl die erste Spalte. Liefert die Abfrage zusätzlich Hilfswerte, etwa den Umsatz
+    des Vormonats vor der eigentlichen Quote, stünde der falsche Wert im Dashboard (Probeläufe 7 und 10, ADR 0008).
+    Abfragen mit Gruppierung oder mit Spalten ohne Aggregat (z. B. Bezeichnung plus Wert) betrifft das nicht.
+    """
+    baum = zerlege(sql)
+    if not isinstance(baum, exp.Select) or baum.args.get("group") or len(baum.expressions) < 2:
+        return
+    aggregate = [a for a in baum.expressions if a.find(exp.AggFunc)]
+    feste = [a for a in baum.expressions if not a.find(exp.AggFunc) and not a.find(exp.Column)]  # z. B. 'Anteil' AS kpi
+    if aggregate and len(aggregate) + len(feste) == len(baum.expressions):
+        namen = ", ".join(a.alias_or_name or a.sql(dialect="sqlite") for a in baum.expressions)
+        raise SqlPruefFehler(
+            f"Die Abfrage berechnet einen einzelnen Wert, liefert aber {len(baum.expressions)} Spalten ({namen}). "
+            "Das Dashboard zeigt davon nur die erste. Gib genau eine Spalte zurück: den Wert, den die KPI beschreibt, "
+            "ohne Beschriftung und ohne Hilfswerte"
+        )
+
+
+def _ist_ganzzahl(ausdruck: exp.Expression, ganzzahl_spalten: set[str]) -> bool:
+    """True, wenn der Ausdruck sicher eine ganze Zahl liefert (Anzahl, Summe einer Ganzzahl-Spalte, ganze Zahl ...).
+    Im Zweifel False: Die Prüfung soll nur eindeutige Fälle melden."""
+    if isinstance(ausdruck, (exp.Paren, exp.Alias)):
+        return _ist_ganzzahl(ausdruck.this, ganzzahl_spalten)
+    if isinstance(ausdruck, exp.Subquery):
+        auswahl = ausdruck.this
+        return isinstance(auswahl, exp.Select) and len(auswahl.expressions) == 1 and _ist_ganzzahl(
+            auswahl.expressions[0], ganzzahl_spalten
+        )
+    if isinstance(ausdruck, exp.Count):
+        return True
+    if isinstance(ausdruck, (exp.Sum, exp.Max, exp.Min)):
+        return _ist_ganzzahl(ausdruck.this, ganzzahl_spalten)
+    if isinstance(ausdruck, exp.Literal):
+        return not ausdruck.is_string and ausdruck.this.lstrip("-").isdigit()
+    if isinstance(ausdruck, exp.Column):
+        return ausdruck.name.lower() in ganzzahl_spalten
+    if isinstance(ausdruck, exp.Case):
+        werte = [f.args.get("true") for f in ausdruck.args.get("ifs", [])] + [ausdruck.args.get("default")]
+        return all(w is None or _ist_ganzzahl(w, ganzzahl_spalten) for w in werte)
+    if isinstance(ausdruck, (exp.Add, exp.Sub, exp.Mul)):
+        return _ist_ganzzahl(ausdruck.this, ganzzahl_spalten) and _ist_ganzzahl(ausdruck.expression, ganzzahl_spalten)
+    return False
+
+
+def pruefe_ganzzahl_division(sql: str, ganzzahl_spalten: set[str]) -> None:
+    """SQLite teilt zwei ganze Zahlen ganzzahlig: 81 / 93 ergibt 0 statt 0,87 (Messung 27.11., qwen3:8b und 14b)."""
+    ganzzahl = {s.lower() for s in ganzzahl_spalten}
+    for division in zerlege(sql).find_all(exp.Div):
+        if _ist_ganzzahl(division.this, ganzzahl) and _ist_ganzzahl(division.expression, ganzzahl):
+            raise SqlPruefFehler(
+                f"Die Division {division.sql(dialect='sqlite')} teilt zwei ganze Zahlen; SQLite schneidet dann die "
+                "Nachkommastellen ab (z. B. 0 statt 0,87). Multipliziere den Zähler mit 1.0"
+            )
 
 
 def pruefe_ohne_systemzeit(sql: str) -> None:
